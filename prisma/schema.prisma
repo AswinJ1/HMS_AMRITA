@@ -1,0 +1,167 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // You can change this to mysql, sqlite, etc.
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  STUDENT
+  TEAM_LEAD
+  HOSTEL
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  uid           String?  @unique // For staff and hostel users
+  password      String
+  role          Role
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  student       Student?
+  staff         Staff?
+  hostel        Hostel?
+  teamLead      TeamLead?
+  admin         Admin?
+  
+  @@index([email])
+  @@index([uid])
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  clubName    String
+  hostelName  String
+  roomNo      String
+  phoneNumber String
+  isTeamLead  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  staybackRequests StaybackRequest[]
+  
+  @@index([clubName])
+  @@index([hostelName])
+}
+
+model Staff {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  department String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  approvals StaybackApproval[]
+}
+
+model Hostel {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  hostelName String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  approvals StaybackApproval[]
+}
+
+model TeamLead {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  clubName   String
+  department String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Relations
+  approvals StaybackApproval[]
+  
+  @@index([clubName])
+}
+
+model StaybackRequest {
+  id        String   @id @default(cuid())
+  studentId String
+  clubName  String
+  date      DateTime
+  fromTime  String   // Store as "HH:MM" format
+  toTime    String   // Store as "HH:MM" format
+  remarks   String
+  status    RequestStatus   @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student   Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  approvals StaybackApproval[]
+
+  @@map("stayback_requests")
+}
+
+model StaybackApproval {
+  id         String         @id @default(cuid())
+  requestId  String
+  request    StaybackRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  // Approver can be staff, hostel, or team lead
+  staffId    String?
+  staff      Staff?         @relation(fields: [staffId], references: [id])
+  
+  hostelId   String?
+  hostel     Hostel?        @relation(fields: [hostelId], references: [id])
+  
+  teamLeadId String?
+  teamLead   TeamLead?      @relation(fields: [teamLeadId], references: [id])
+  
+  status     ApprovalStatus @default(PENDING)
+  comments   String?
+  approvedAt DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  
+  @@unique([requestId, staffId])
+  @@unique([requestId, hostelId])
+  @@unique([requestId, teamLeadId])
+  @@index([requestId])
+  @@index([status])
+}
