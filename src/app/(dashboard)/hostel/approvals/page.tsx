@@ -11,6 +11,14 @@ interface StaybackApproval {
   comments?: string
   createdAt: string
   approvedAt?: string
+    teamLead?: {
+    name: string
+    clubName?: string
+  }
+    staff?: {
+    name: string
+    department?: string
+  }
   request: {
     id: string
     date: string
@@ -31,6 +39,20 @@ interface StaybackApproval {
         uid?: string
       }
     }
+      approvals: Array<{
+      id: string
+      status: "PENDING" | "APPROVED" | "REJECTED"
+      comments?: string
+      createdAt: string
+      teamLead?: {
+        name: string
+        clubName?: string
+      }
+      staff?: {
+        name: string
+        department?: string
+      }
+    }>
   }
 }
 
@@ -300,6 +322,72 @@ const HostelApprovalsPage = () => {
                           </p>
                         </div>
                       </div>
+                        {/* Team Lead Approval Status */}
+                      {approval.request.approvals && approval.request.approvals.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Team Lead Approvals:</p>
+                          <div className="space-y-2">
+                            {approval.request.approvals
+                              .filter((teamApproval) => teamApproval.teamLead ) // Only team lead approvals
+                              .map((teamApproval) => (
+                                <div key={teamApproval.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                  <div className="flex items-center space-x-3">
+                                    <span
+                                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                                        teamApproval.status
+                                      )}`}
+                                    >
+                                      {teamApproval.status}
+                                    </span>
+                                    <span className="text-sm text-gray-900">
+                                      {teamApproval.teamLead?.name || "Team Lead"}
+                                    </span>
+                                  </div>
+                                  {teamApproval.comments && (
+                                    <div className="ml-4 flex-1">
+                                      <p className="text-xs text-gray-600 italic">
+                                        "{teamApproval.comments}"
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                       {/* Team Lead Approval Status */}
+                      {approval.request.approvals && approval.request.approvals.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Staff Approvals:</p>
+                          <div className="space-y-2">
+                            {approval.request.approvals
+                              .filter((teamApproval) => teamApproval.staff) // Only staff approvals
+                              .map((teamApproval) => (
+                                <div key={teamApproval.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                  <div className="flex items-center space-x-3">
+                                    <span
+                                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                                        teamApproval.status
+                                      )}`}
+                                    >
+                                      {teamApproval.status}
+                                    </span>
+                                    <span className="text-sm text-gray-900">
+                                      {teamApproval.staff?.name || "Staff"}
+                                    </span>
+                                  </div>
+                                  {teamApproval.comments && (
+                                    <div className="ml-4 flex-1">
+                                      <p className="text-xs text-gray-600 italic">
+                                        "{teamApproval.comments}"
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="mb-4">
                         <p className="text-sm font-medium text-gray-700 mb-2">Reason:</p>

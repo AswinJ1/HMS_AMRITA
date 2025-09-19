@@ -10,12 +10,16 @@ interface StaybackApproval {
   comments?: string
   createdAt: string
   approvedAt?: string
+  teamLead?: {
+    name: string
+    clubName?: string
+  }
   request: {
     id: string
     date: string
-    fromTime: string      // ✅ Added fromTime
-    toTime: string        // ✅ Added toTime
-    remarks: string       // ✅ Changed from 'reason' to 'remarks'
+    fromTime: string
+    toTime: string
+    remarks: string
     clubName: string
     createdAt: string
     student: {
@@ -29,6 +33,16 @@ interface StaybackApproval {
         uid?: string
       }
     }
+    approvals: Array<{
+      id: string
+      status: "PENDING" | "APPROVED" | "REJECTED"
+      comments?: string
+      createdAt: string
+      teamLead?: {
+        name: string
+        clubName?: string
+      }
+    }>
   }
 }
 
@@ -282,10 +296,48 @@ const StaffApprovalsPage = () => {
                             <span className="font-medium">Stayback Date:</span> {new Date(approval.request.date).toLocaleDateString()}
                           </p>
                           <p className="text-sm text-gray-600">
+                            <span className="font-medium">Time:</span> {approval.request.fromTime} - {approval.request.toTime}
+                          </p>
+                          <p className="text-sm text-gray-600">
                             <span className="font-medium">Submitted:</span> {formatDate(approval.request.createdAt)}
                           </p>
                         </div>
+                        
                       </div>
+
+                      {/* Team Lead Approval Status */}
+                      {approval.request.approvals && approval.request.approvals.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Team Lead Approvals:</p>
+                          <div className="space-y-2">
+                            {approval.request.approvals
+                              .filter((teamApproval) => teamApproval.teamLead) // Only team lead approvals
+                              .map((teamApproval) => (
+                                <div key={teamApproval.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                  <div className="flex items-center space-x-3">
+                                    <span
+                                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                                        teamApproval.status
+                                      )}`}
+                                    >
+                                      {teamApproval.status}
+                                    </span>
+                                    <span className="text-sm text-gray-900">
+                                      {teamApproval.teamLead?.name || "Team Lead"}
+                                    </span>
+                                  </div>
+                                  {teamApproval.comments && (
+                                    <div className="ml-4 flex-1">
+                                      <p className="text-xs text-gray-600 italic">
+                                        "{teamApproval.comments}"
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="mb-4">
                         <p className="text-sm font-medium text-gray-700 mb-2">Reason:</p>
@@ -346,7 +398,10 @@ const StaffApprovalsPage = () => {
                       Hostel & Room
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
+                      Date & Time
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Team Lead Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
@@ -375,7 +430,22 @@ const StaffApprovalsPage = () => {
                         <div className="text-gray-500">Room {approval.request.student.roomNo}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(approval.request.date).toLocaleDateString()}
+                        <div>{new Date(approval.request.date).toLocaleDateString()}</div>
+                        <div className="text-gray-500">{approval.request.fromTime} - {approval.request.toTime}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          {approval.request.approvals && approval.request.approvals.length > 0 &&
+  approval.request.approvals
+    .filter((teamApproval) => teamApproval.teamLead && teamApproval.comments)
+    .map((teamApproval) => (
+      <div key={teamApproval.id} className="mb-1">
+        <span className="font-medium text-xs text-orange-600">Team Lead:</span>
+        <p className="text-xs truncate">"{teamApproval.comments}"</p>
+      </div>
+    ))
+}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
@@ -390,8 +460,26 @@ const StaffApprovalsPage = () => {
                         {approval.approvedAt ? formatDate(approval.approvedAt) : "-"}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {approval.comments || "-"}
+                        <div className="text-sm text-gray-900 max-w-xs">
+                          {approval.comments && (
+      <div className="mb-1">
+        <span className="font-medium text-xs text-blue-600">Staff:</span>
+        <p className="text-xs truncate">{approval.comments}</p>
+      </div>
+    )}
+    {approval.request.approvals && approval.request.approvals.length > 0 &&
+      approval.request.approvals
+        .filter((teamApproval) => teamApproval.teamLead && teamApproval.comments)
+        .map((teamApproval) => (
+          <div key={teamApproval.id} className="mb-1">
+            <span className="font-medium text-xs text-orange-600">Team Lead:</span>
+            <p className="text-xs truncate">"{teamApproval.comments}"</p>
+          </div>
+        ))
+    }
+    {!approval.comments && (!approval.request.approvals || approval.request.approvals.length === 0 || !approval.request.approvals.some(ta => ta.teamLead && ta.comments)) && (
+      <span className="text-xs text-gray-400">No comments</span>
+    )}
                         </div>
                       </td>
                     </tr>
@@ -438,7 +526,13 @@ const StaffApprovalsPage = () => {
                 <p className="text-sm text-gray-600">
                   <span className="font-medium">Date:</span> {new Date(selectedApproval.request.date).toLocaleDateString()}
                 </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Time:</span> {selectedApproval.request.fromTime} - {selectedApproval.request.toTime}
+                </p>
               </div>
+
+              {/* Show Team Lead approval status in modal */}
+           
               
               <div className="mb-4">
                 <label htmlFor="comments" className="block text-sm font-medium text-gray-700 mb-2">

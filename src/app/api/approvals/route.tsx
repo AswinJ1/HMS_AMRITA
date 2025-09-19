@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         
         console.log(`👤 Found staff: ${staff.name} (ID: ${staff.id})`)
         
-        // Get all stayback approvals for this staff member
+        // Get all stayback approvals for this staff member WITH team lead approvals
         approvals = await prisma.staybackApproval.findMany({
           where: { 
             staffId: staff.id 
@@ -45,6 +45,28 @@ export async function GET(request: NextRequest) {
                       }
                     }
                   }
+                },
+                // Include all approvals for this request to show team lead decisions
+                approvals: {
+                  include: {
+                    teamLead: {
+                      select: {
+                        name: true,
+                        clubName: true
+                      }
+                    },
+                    staff: {
+                      select: {
+                        name: true,
+                        department: true
+                      }
+                    },
+                    hostel: {
+                      select: {
+                        hostelName: true
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -52,7 +74,7 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: "desc" },
         })
         
-        console.log(`✅ Found ${approvals.length} staff approvals`)
+        console.log(`✅ Found ${approvals.length} staff approvals with team lead data`)
         break
         
       case "HOSTEL":
@@ -120,7 +142,7 @@ export async function GET(request: NextRequest) {
           console.log(`✅ Created ${missingApprovals.length} missing approval records`)
         }
         
-        // Now get all approvals for this hostel
+        // Now get all approvals for this hostel WITH team lead approvals
         approvals = await prisma.staybackApproval.findMany({
           where: { 
             hostelId: hostel.id 
@@ -134,6 +156,28 @@ export async function GET(request: NextRequest) {
                       select: {
                         email: true,
                         uid: true,
+                      }
+                    }
+                  }
+                },
+                // Include all approvals for this request to show team lead decisions
+                approvals: {
+                  include: {
+                    teamLead: {
+                      select: {
+                        name: true,
+                        clubName: true
+                      }
+                    },
+                    staff: {
+                      select: {
+                        name: true,
+                        department: true
+                      }
+                    },
+                    hostel: {
+                      select: {
+                        hostelName: true
                       }
                     }
                   }
