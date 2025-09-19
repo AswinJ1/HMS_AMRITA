@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { staybackRequestSchema } from "@/lib/validations/stayback"
+import { z } from "zod"
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,9 +28,36 @@ export async function GET(request: NextRequest) {
       include: {
         approvals: {
           include: {
-            staff: true,
-            hostel: true,
-            teamLead: true,
+            staff: {
+              include: {
+                user: {
+                  select: {
+                    email: true,
+                    uid: true,
+                  }
+                }
+              }
+            },
+            hostel: {
+              include: {
+                user: {
+                  select: {
+                    email: true,
+                    uid: true,
+                  }
+                }
+              }
+            },
+            teamLead: {
+              include: {
+                user: {
+                  select: {
+                    email: true,
+                    uid: true,
+                  }
+                }
+              }
+            },
           },
         },
       },
@@ -55,12 +83,17 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json()
+    
+    // Extract the specific approver IDs from the request
+    const { staffId, hostelId, teamLeadId, ...requestData } = body
+    
+    // Validate the base request data
     const validatedData = staybackRequestSchema.parse({
-      clubName: body.clubName,
-      date: new Date(body.date),
-      fromTime: body.fromTime,
-      toTime: body.toTime,
-      remarks: body.remarks,
+      clubName: requestData.clubName,
+      date: new Date(requestData.date),
+      fromTime: requestData.fromTime,
+      toTime: requestData.toTime,
+      remarks: requestData.remarks,
     })
     
     // Get student profile
@@ -72,6 +105,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 })
     }
     
+    // Verify that the specified approvers exist
+    const verificationPromises = []
+    
+    if (staffId) {
+      verificationPromises.push(
+        prisma.staff.findUnique({ where: { id: staffId } })
+          .then(staff => ({ type: 'staff', id: staffId, exists: !!staff }))
+      )
+    }
+    
+    if (hostelId) {
+      verificationPromises.push(
+        prisma.hostel.findUnique({ where: { id: hostelId } })
+          .then(hostel => ({ type: 'hostel', id: hostelId, exists: !!hostel }))
+      )
+    }
+    
+    // If no team lead ID provided, try to find based on club name
+    let finalTeamLeadId = teamLeadId
+    if (!teamLeadId && validatedData.clubName) {
+      const teamLead = await prisma.teamLead.findFirst({
+        where: { 
+          clubName: {
+            equals: validatedData.clubName,
+            mode: 'insensitive'
+          }
+        },
+      })
+      if (teamLead) {
+        finalTeamLeadId = teamLead.id
+      }
+    } else if (teamLeadId) {
+      verificationPromises.push(
+        prisma.teamLead.findUnique({ where: { id: teamLeadId } })
+          .then(teamLead => ({ type: 'teamLead', id: teamLeadId, exists: !!teamLead }))
+      )
+    }
+    
+    // Verify all approvers exist
+    const verificationResults = await Promise.all(verificationPromises)
+    const missingApprovers = verificationResults.filter(r => !r.exists)
+    
+    if (missingApprovers.length > 0) {
+      return NextResponse.json(
+        { 
+          error: "Invalid approver selection", 
+          details: missingApprovers.map(a => `${a.type} with ID ${a.id} not found`)
+        },
+        { status: 400 }
+      )
+    }
+    
     // Create stayback request
     const staybackRequest = await prisma.staybackRequest.create({
       data: {
@@ -81,67 +166,107 @@ export async function POST(request: NextRequest) {
         fromTime: validatedData.fromTime,
         toTime: validatedData.toTime,
         remarks: validatedData.remarks,
+        status: "PENDING",
       },
     })
     
-    // Create approval records for staff, hostel, and team lead
-    // Find relevant approvers
-    const [staff, hostel, teamLead] = await Promise.all([
-      prisma.staff.findFirst(), // You might want to add logic to find specific staff
-      prisma.hostel.findFirst({
-        where: { hostelName: student.hostelName },
-      }),
-      prisma.teamLead.findFirst({
-        where: { clubName: validatedData.clubName },
-      }),
-    ])
+    console.log(`✅ Created stayback request: ${staybackRequest.id}`)
+    console.log(`📋 Creating approvals for - Staff: ${staffId}, Hostel: ${hostelId}, TeamLead: ${finalTeamLeadId}`)
     
+    // Create approval records for the specified approvers
     const approvalPromises = []
     
-    if (staff) {
+    // Create approval for specified staff
+    if (staffId) {
       approvalPromises.push(
         prisma.staybackApproval.create({
           data: {
             requestId: staybackRequest.id,
-            staffId: staff.id,
+            staffId: staffId,
             status: "PENDING",
           },
+        }).then(approval => {
+          console.log(`👤 Created staff approval for staff ID: ${staffId}`)
+          return approval
         })
       )
     }
     
-    if (hostel) {
+    // Create approval for specified hostel
+    if (hostelId) {
       approvalPromises.push(
         prisma.staybackApproval.create({
           data: {
             requestId: staybackRequest.id,
-            hostelId: hostel.id,
+            hostelId: hostelId,
             status: "PENDING",
           },
+        }).then(approval => {
+          console.log(`🏠 Created hostel approval for hostel ID: ${hostelId}`)
+          return approval
         })
       )
     }
     
-    if (teamLead) {
+    // Create approval for team lead (either specified or auto-found)
+    if (finalTeamLeadId) {
       approvalPromises.push(
         prisma.staybackApproval.create({
           data: {
             requestId: staybackRequest.id,
-            teamLeadId: teamLead.id,
+            teamLeadId: finalTeamLeadId,
             status: "PENDING",
           },
+        }).then(approval => {
+          console.log(`👥 Created team lead approval for team lead ID: ${finalTeamLeadId}`)
+          return approval
         })
       )
     }
     
-    await Promise.all(approvalPromises)
+    // Ensure at least one approver is assigned
+    if (approvalPromises.length === 0) {
+      // Delete the request if no approvers could be assigned
+      await prisma.staybackRequest.delete({ where: { id: staybackRequest.id } })
+      
+      return NextResponse.json(
+        { 
+          error: "No approvers selected. Please select at least one approver." 
+        },
+        { status: 400 }
+      )
+    }
+    
+    // Create all approval records
+    const approvals = await Promise.all(approvalPromises)
+    console.log(`✅ Created ${approvals.length} approval records`)
+    
+    // Optional: Send notifications to approvers (email/SMS)
+    // await sendNotificationToApprovers(approvals)
     
     return NextResponse.json(
-      { message: "Stayback request created successfully", id: staybackRequest.id },
+      { 
+        message: "Stayback request created successfully", 
+        id: staybackRequest.id,
+        approvalsCreated: approvals.length,
+        approvers: {
+          staff: staffId ? true : false,
+          hostel: hostelId ? true : false,
+          teamLead: finalTeamLeadId ? true : false,
+        }
+      },
       { status: 201 }
     )
   } catch (error) {
     console.error("Error creating stayback request:", error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid request data", details: error.issues },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: "Failed to create request" },
       { status: 500 }
