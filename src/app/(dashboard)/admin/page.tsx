@@ -4,8 +4,17 @@
 
 import { useSession } from "next-auth/react"
 import { signOut } from "next-auth/react"
-import Link from "next/link"
 import { useState, useEffect } from "react"
+import Link from "next/link"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Stats {
   totalUsers: number
@@ -26,162 +35,183 @@ export default function AdminDashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   useEffect(() => {
     fetchStats()
   }, [])
-  
+
   const fetchStats = async () => {
     try {
       setLoading(true)
       setError(null)
-      
-      console.log("🔄 Fetching admin stats...")
-      
+
       const [usersRes, logsRes] = await Promise.all([
         fetch("/api/users"),
         fetch("/api/logs"),
       ])
-      
-      console.log("📊 Users response status:", usersRes.status)
-      console.log("📊 Logs response status:", logsRes.status)
-      
-      if (!usersRes.ok) {
-        throw new Error(`Users API failed: ${usersRes.status}`)
-      }
-      
-      if (!logsRes.ok) {
-        throw new Error(`Logs API failed: ${logsRes.status}`)
-      }
-      
+
+      if (!usersRes.ok) throw new Error(`Users API failed: ${usersRes.status}`)
+      if (!logsRes.ok) throw new Error(`Logs API failed: ${logsRes.status}`)
+
       const users = await usersRes.json()
       const logs = await logsRes.json()
-      
-      console.log("👥 Users data:", users)
-      console.log("📋 Logs data:", logs)
-      
-      // Handle different possible response structures
+
       const statusStats = logs.stats?.status || logs.stats || {}
       const requestsArray = logs.requests || logs || []
-      
+
       setStats({
         totalUsers: Array.isArray(users) ? users.length : 0,
-        totalRequests: Array.isArray(requestsArray) ? requestsArray.length : (logs.total || 0),
+        totalRequests: Array.isArray(requestsArray)
+          ? requestsArray.length
+          : logs.total || 0,
         pendingRequests: statusStats.PENDING || 0,
         approvedRequests: statusStats.APPROVED || 0,
         rejectedRequests: statusStats.REJECTED || 0,
       })
-      
-      console.log("✅ Stats updated:", {
-        totalUsers: Array.isArray(users) ? users.length : 0,
-        totalRequests: Array.isArray(requestsArray) ? requestsArray.length : (logs.total || 0),
-        pendingRequests: statusStats.PENDING || 0,
-        approvedRequests: statusStats.APPROVED || 0,
-        rejectedRequests: statusStats.REJECTED || 0,
-      })
-      
     } catch (error) {
-      console.error("❌ Error fetching stats:", error)
       setError(error instanceof Error ? error.message : "Failed to fetch data")
     } finally {
       setLoading(false)
     }
   }
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    )
-  }
-  
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
-                Admin: {session?.user?.email}
-              </span>
-              <button
-                onClick={() => signOut()}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Logout
-              </button>
-            </div>
+    <div className="min-h-screen bg-muted/30">
+      {/* Header */}
+      <header className="border-b bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground hidden sm:inline">
+              {session?.user?.email}
+            </span>
+            <Button variant="destructive" size="sm" onClick={() => signOut()}>
+              Logout
+            </Button>
           </div>
         </div>
       </header>
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Error Message */}
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Error */}
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            <strong>Error:</strong> {error}
-            <button
-              onClick={fetchStats}
-              className="ml-4 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-            >
-              Retry
-            </button>
-          </div>
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription className="flex justify-between items-center">
+              {error}
+              <Button size="sm" variant="secondary" onClick={fetchStats}>
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
-        
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalUsers}</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Total Requests</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalRequests}</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Pending</h3>
-            <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pendingRequests}</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Approved</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">{stats.approvedRequests}</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Rejected</h3>
-            <p className="text-3xl font-bold text-red-600 mt-2">{stats.rejectedRequests}</p>
-          </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+          {loading ? (
+            <>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Card key={i} className="p-6">
+                  <Skeleton className="h-4 w-24 mb-3" />
+                  <Skeleton className="h-8 w-16" />
+                </Card>
+              ))}
+            </>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Total Users</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{stats.totalUsers}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Total Requests</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{stats.totalRequests}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pending</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-yellow-600">
+                    {stats.pendingRequests}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Approved</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-green-600">
+                    {stats.approvedRequests}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Rejected</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-red-600">
+                    {stats.rejectedRequests}
+                  </p>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
-        
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link
-            href="/admin/users"
-            className="p-6 bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
-          >
-            <h2 className="text-xl font-semibold mb-2">Manage Users</h2>
-            <p className="text-gray-600">Create, view, and delete users</p>
+
+        {/* Action Links */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Link href="/admin/users">
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardHeader>
+                <CardTitle>Manage Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Create, view, and delete users
+                </p>
+              </CardContent>
+            </Card>
           </Link>
-          
-          <Link
-            href="/admin/logs"
-            className="p-6 bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
-          >
-            <h2 className="text-xl font-semibold mb-2">View Logs</h2>
-            <p className="text-gray-600">View all stayback requests and filter by date</p>
+
+          <Link href="/admin/logs">
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardHeader>
+                <CardTitle>View Logs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  View stayback requests and filter by date
+                </p>
+              </CardContent>
+            </Card>
           </Link>
-          
-          <Link
-            href="/admin/create-user"
-            className="p-6 bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
-          >
-            <h2 className="text-xl font-semibold mb-2">Create User</h2>
-            <p className="text-gray-600">Create new staff or hostel users</p>
+
+          <Link href="/admin/create-user">
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardHeader>
+                <CardTitle>Create User</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Add new staff or hostel users
+                </p>
+              </CardContent>
+            </Card>
           </Link>
         </div>
       </main>
