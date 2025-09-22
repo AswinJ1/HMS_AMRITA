@@ -9,6 +9,39 @@ import { z } from "zod"
 import { Role } from "@prisma/client"
 import { loginSchema } from "@/lib/validations/auth"
 import Link from "next/link"
+import Image from "next/image"
+import { Eye, EyeOff, LogIn } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
 
 type LoginFormData = z.infer<typeof loginSchema>
 
@@ -18,20 +51,17 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-    setValue,
-  } = useForm<LoginFormData>({
+  const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       role: "STUDENT",
+      email: "",
+      uid: "",
+      password: "",
     },
   })
   
-  const watchRole = watch("role")
+  const watchRole = form.watch("role")
   
   // Determine which credential fields to show
   const showEmail = watchRole === "ADMIN" || watchRole === "STUDENT" || watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD"
@@ -40,10 +70,10 @@ export function LoginForm() {
   const isEmailRequired = watchRole === "ADMIN" || watchRole === "STUDENT"
 
   const handleRoleChange = (role: Role) => {
-    setValue("role", role)
+    form.setValue("role", role)
     // Clear previous credential values when role changes
-    setValue("email", "")
-    setValue("uid", "")
+    form.setValue("email", "")
+    form.setValue("uid", "")
     setError(null)
   }
   
@@ -74,15 +104,15 @@ export function LoginForm() {
     }
   }
 
-  const getRoleColor = (role: Role) => {
-    const colors = {
-      STUDENT: "bg-indigo-100 text-indigo-800",
-      STAFF: "bg-green-100 text-green-800", 
-      ADMIN: "bg-purple-100 text-purple-800",
-      HOSTEL: "bg-blue-100 text-blue-800",
-      TEAM_LEAD: "bg-orange-100 text-orange-800"
+  const getRoleVariant = (role: Role): "default" | "secondary" | "destructive" | "outline" => {
+    const variants = {
+      STUDENT: "default",
+      STAFF: "secondary", 
+      ADMIN: "destructive",
+      HOSTEL: "outline",
+      TEAM_LEAD: "secondary"
     }
-    return colors[role]
+    return variants[role] as "default" | "secondary" | "destructive" | "outline"
   }
 
   const getRoleDescription = (role: Role) => {
@@ -97,161 +127,238 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow mb-6">
-            <span className="text-white font-bold text-xl">HM</span>
+          <div className="mx-auto flex items-center justify-center mb-4">
+            <Image
+              src="/logo.png"
+              alt="Amrita Logo"
+              width={120}
+              height={120}
+              priority
+            />
           </div>
-          <h2 className="text-3xl font-semibold text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-gray-600">Sign in to your hostel management account</p>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
+            Welcome Back
+          </h2>
+          <p className="text-muted-foreground">
+            Sign in to your hostel management account
+          </p>
         </div>
 
-        {/* Login Form */}
-        <div className="bg-white shadow rounded-xl p-8 space-y-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Role Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Select Your Role
-              </label>
-              <select
-                {...register("role")}
-                onChange={(e) => handleRoleChange(e.target.value as Role)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all bg-white text-gray-900"
-              >
-                <option value="STUDENT">Student</option>
-                <option value="STAFF">Staff</option>
-                <option value="ADMIN">Admin</option>
-                <option value="HOSTEL">Hostel Admin</option>
-                <option value="TEAM_LEAD">Team Lead</option>
-              </select>
-              
-              {/* Role Badge and Description */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleColor(watchRole)} w-fit`}>
-                  {watchRole.replace("_", " ")}
-                </span>
-                <p className="text-xs text-gray-500 sm:text-right">
-                  {getRoleDescription(watchRole)}
-                </p>
-              </div>
-            </div>
-
-            {/* Email Field */}
-            {showEmail && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  placeholder="Enter your email address"
-                  {...register("email")}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all"
+        {/* Login Card */}
+        <Card className="shadow-lg">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-xl">Sign In</CardTitle>
+            <CardDescription>
+              Enter your credentials to access your dashboard
+            </CardDescription>
+          </CardHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-6">
+                {/* Role Selection */}
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Your Role</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value)
+                          handleRoleChange(value as Role)
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="STUDENT">Student</SelectItem>
+                          <SelectItem value="STAFF">Staff</SelectItem>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
+                          <SelectItem value="HOSTEL">Hostel Admin</SelectItem>
+                          <SelectItem value="TEAM_LEAD">Team Lead</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2">
+                        <Badge variant={getRoleVariant(watchRole)}>
+                          {watchRole.replace("_", " ")}
+                        </Badge>
+                        <FormDescription className="sm:text-right">
+                          {getRoleDescription(watchRole)}
+                        </FormDescription>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.email && (
-                  <p className="text-red-600 text-sm">
-                    {errors.email.message}
-                  </p>
+
+                {/* Email Field */}
+                {showEmail && (
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Email Address {isEmailRequired && <span className="text-red-500">*</span>}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="Enter your email address"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              </div>
-            )}
 
-            {/* UID Field */}
-            {showUID && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  {isUIDRequired ? "UID (Required)" : "UID"}
-                </label>
-                <input
-                  type="text"
-                  placeholder={isUIDRequired ? "Enter your staff UID" : "Enter your UID"}
-                  {...register("uid")}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all"
-                />
-                {errors.uid && (
-                  <p className="text-red-600 text-sm">
-                    {errors.uid.message}
-                  </p>
+                {/* UID Field */}
+                {showUID && (
+                  <FormField
+                    control={form.control}
+                    name="uid"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          UID {isUIDRequired && <span className="text-red-500">*</span>}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder={isUIDRequired ? "Enter your staff UID" : "Enter your UID"}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              </div>
-            )}
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  {...register("password")}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all"
+                {/* Password Field */}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
+                            {...field}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <span className="sr-only">
+                              {showPassword ? "Hide password" : "Show password"}
+                            </span>
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
+
+                {/* Error Message */}
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+
+              <CardFooter className="flex flex-col space-y-4">
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w- mt-5"
+                  size="lg"
                 >
-                  {showPassword ? "Hide" : "View"}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-600 text-sm">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Sign In
+                    </>
+                  )}
+                </Button>
 
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
+                <Separator className="my-2" />
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 px-4 rounded-lg shadow text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-transform duration-200 transform hover:scale-105"
-            >
-              {isLoading ? (
-                <span className="mr-2">Signing in...</span>
-              ) : (
-                <span className="mr-2">Sign In</span>
-              )}
-            </button>
-          </form>
-
-          {/* Footer Links */}
-          <div className="space-y-4 pt-6 border-t border-gray-100">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <Link 
-                href="/register" 
-                className="text-center sm:text-left text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-              >
-                New student? Create account →
-              </Link>
-              <Link 
-                href="/forgot-password" 
-                className="text-center sm:text-right text-sm text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            
-            {/* Help Text */}
-            <div className="text-center">
-              <p className="text-xs text-gray-500">
-                Need help? Contact your hostel administrator
-              </p>
-            </div>
-          </div>
-        </div>
+                {/* Footer Links */}
+                <div className="w-full space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <Button variant="link" asChild className="p-0 h-auto font-normal">
+                      <Link href="/register">
+                        New student? Create account →
+                      </Link>
+                    </Button>
+                    <Button variant="link" asChild className="p-0 h-auto font-normal text-muted-foreground">
+                      <Link href="/forgot-password">
+                        Forgot password?
+                      </Link>
+                    </Button>
+                  </div>
+                  
+                  {/* Help Text */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Need help? Contact your hostel administrator
+                    </p>
+                  </div>
+                </div>
+              </CardFooter>
+            </form>
+          </Form>
+        </Card>
       </div>
     </div>
   )

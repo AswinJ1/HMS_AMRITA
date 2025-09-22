@@ -6,6 +6,26 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
+// shadcn/ui imports
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Icons (assuming you have Lucide icons installed)
+import { 
+  FileText, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  RefreshCw,
+  AlertTriangle,
+  BarChart3,
+  Users,
+  LogOut
+} from "lucide-react"
+
 interface HostelStats {
   totalApprovals: number
   pendingApprovals: number
@@ -85,9 +105,9 @@ export default function HostelDashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        <div className="text-center space-y-4">
+          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
+          <Skeleton className="h-4 w-32 mx-auto" />
         </div>
       </div>
     )
@@ -95,6 +115,7 @@ export default function HostelDashboard() {
   
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -106,161 +127,160 @@ export default function HostelDashboard() {
               <span className="text-sm text-gray-600">
                 {session?.user?.email}
               </span>
-              <button
+              <Button 
+                variant="destructive"
                 onClick={() => signOut()}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="gap-2"
               >
+                <LogOut className="h-4 w-4" />
                 Logout
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Error Message */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Error Alert */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <p className="text-red-700">{error}</p>
-            </div>
-          </div>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
-        {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Welcome back!</h2>
-              <p className="text-gray-600 mt-1">
-                Manage stayback approvals for {stats.hostelName}
-              </p>
-            </div>
-            <div className="text-right">
-              <button
+        {/* Welcome Card */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Welcome back!</h2>
+                <p className="text-gray-600 mt-1">
+                  Manage stayback approvals for {stats.hostelName}
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
                 onClick={fetchStats}
-                className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="gap-2"
               >
+                <RefreshCw className="h-4 w-4" />
                 Refresh Data
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
         
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <CardDescription>Total Requests</CardDescription>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalApprovals}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Total Requests</h3>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalApprovals}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Clock className="h-6 w-6 text-yellow-600" />
+                </div>
+                <div className="ml-4">
+                  <CardDescription>Pending Review</CardDescription>
+                  <p className="text-2xl font-bold text-yellow-600">{stats.pendingApprovals}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Pending Review</h3>
-                <p className="text-2xl font-bold text-yellow-600">{stats.pendingApprovals}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <CardDescription>Approved Today</CardDescription>
+                  <p className="text-2xl font-bold text-green-600">{stats.approvedToday}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Approved Today</h3>
-                <p className="text-2xl font-bold text-green-600">{stats.approvedToday}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <XCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="ml-4">
+                  <CardDescription>Rejected Today</CardDescription>
+                  <p className="text-2xl font-bold text-red-600">{stats.rejectedToday}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Rejected Today</h3>
-                <p className="text-2xl font-bold text-red-600">{stats.rejectedToday}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
         
         {/* Quick Actions */}
-        <div className="mb-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link
-              href="/hostel/approvals"
-              className="group p-6 bg-white rounded-lg shadow hover:shadow-lg transition-all duration-200 border border-gray-200 hover:border-blue-300"
-            >
-              <div className="flex items-center">
-                <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h4 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                    Review Approvals
-                  </h4>
-                  <p className="text-gray-600">
-                    View and process stayback requests
-                  </p>
-                  {stats.pendingApprovals > 0 && (
-                    <p className="text-sm text-orange-600 font-medium mt-1">
-                      {stats.pendingApprovals} pending review{stats.pendingApprovals !== 1 ? 's' : ''}
-                    </p>
-                  )}
-                </div>
-              </div>
+            <Link href="/hostel/approvals" className="block">
+              <Card className="hover:shadow-lg transition-all duration-200 border hover:border-blue-300 group cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="ml-4 flex-1">
+                      <CardTitle className="group-hover:text-blue-600 transition-colors">
+                        Review Approvals
+                      </CardTitle>
+                      <CardDescription>
+                        View and process stayback requests
+                      </CardDescription>
+                      {stats.pendingApprovals > 0 && (
+                        <Badge variant="secondary" className="mt-2">
+                          {stats.pendingApprovals} pending review{stats.pendingApprovals !== 1 ? 's' : ''}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
             
-            <div className="p-6 bg-white rounded-lg shadow border border-gray-200">
-              <div className="flex items-center">
-                <div className="p-3 bg-gray-100 rounded-lg">
-                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+            <Card className="border">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <BarChart3 className="h-6 w-6 text-gray-600" />
+                  </div>
+                  <div className="ml-4">
+                    <CardTitle>View Reports</CardTitle>
+                    <CardDescription>Coming soon - Analytics and reports</CardDescription>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <h4 className="text-lg font-semibold text-gray-900">View Reports</h4>
-                  <p className="text-gray-600">Coming soon - Analytics and reports</p>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        {/* Recent Activity Summary */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Today's Summary</h3>
-          </div>
-          <div className="p-6">
+        {/* Today's Summary Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Today's Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-600 mb-2">
@@ -285,19 +305,15 @@ export default function HostelDashboard() {
             </div>
             
             {stats.pendingApprovals > 0 && (
-              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-yellow-800">
-                    You have {stats.pendingApprovals} request{stats.pendingApprovals !== 1 ? 's' : ''} awaiting your review.
-                  </p>
-                </div>
-              </div>
+              <Alert className="mt-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  You have {stats.pendingApprovals} request{stats.pendingApprovals !== 1 ? 's' : ''} awaiting your review.
+                </AlertDescription>
+              </Alert>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   )
