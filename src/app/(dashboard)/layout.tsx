@@ -5,6 +5,33 @@ import { signOut } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { 
+  LayoutDashboard, 
+  Users, 
+  FileText, 
+  CheckCircle, 
+  UserCheck,
+  Plus,
+  LogOut,
+  Menu,
+  X,
+  ChevronRight
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
 
 interface NavigationItem {
   name: string
@@ -17,151 +44,123 @@ const navigation: NavigationItem[] = [
   {
     name: "Dashboard",
     href: "/admin",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 1v6m8-6v6" />
-      </svg>
-    ),
+    icon: <LayoutDashboard className="w-5 h-5" />,
     roles: ["ADMIN"]
   },
   {
     name: "Dashboard",
     href: "/hostel",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-      </svg>
-    ),
+    icon: <LayoutDashboard className="w-5 h-5" />,
     roles: ["HOSTEL"]
   },
   {
     name: "Dashboard",
     href: "/staff",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-      </svg>
-    ),
+    icon: <LayoutDashboard className="w-5 h-5" />,
     roles: ["STAFF"]
   },
   {
     name: "Dashboard",
     href: "/team-lead",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-      </svg>
-    ),
+    icon: <LayoutDashboard className="w-5 h-5" />,
     roles: ["TEAM_LEAD"]
   },
   {
     name: "Dashboard",
     href: "/student",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-      </svg>
-    ),
+    icon: <LayoutDashboard className="w-5 h-5" />,
     roles: ["STUDENT"]
   },
   {
     name: "Users",
     href: "/admin/users",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-      </svg>
-    ),
+    icon: <Users className="w-5 h-5" />,
     roles: ["ADMIN"]
   },
   {
     name: "System Logs",
     href: "/admin/logs",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
+    icon: <FileText className="w-5 h-5" />,
     roles: ["ADMIN"]
   },
   {
     name: "Approvals",
     href: "/hostel/approvals",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-      </svg>
-    ),
+    icon: <CheckCircle className="w-5 h-5" />,
     roles: ["HOSTEL"]
   },
   {
     name: "Approvals",
     href: "/staff/approvals",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-      </svg>
-    ),
+    icon: <CheckCircle className="w-5 h-5" />,
     roles: ["STAFF"]
   },
   {
     name: "Team Leads",
     href: "/staff/team-leads",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
+    icon: <UserCheck className="w-5 h-5" />,
     roles: ["STAFF"]
   },
   {
     name: "Approvals",
     href: "/team-lead/approvals",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-      </svg>
-    ),
+    icon: <CheckCircle className="w-5 h-5" />,
     roles: ["TEAM_LEAD"]
   },
   {
     name: "My Requests",
     href: "/student/requests",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
+    icon: <FileText className="w-5 h-5" />,
     roles: ["STUDENT"]
   },
   {
     name: "New Request",
-    href: "/student/new-request",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-      </svg>
-    ),
+    href: "/student/stayback",
+    icon: <Plus className="w-5 h-5" />,
     roles: ["STUDENT"]
   }
 ]
 
-const getRoleColor = (role: string) => {
+const getRoleVariant = (role: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (role) {
     case "ADMIN":
-      return "text-purple-600 bg-purple-100"
+      return "destructive"
     case "HOSTEL":
-      return "text-blue-600 bg-blue-100"
     case "STAFF":
-      return "text-green-600 bg-green-100"
     case "TEAM_LEAD":
-      return "text-orange-600 bg-orange-100"
+      return "secondary"
     case "STUDENT":
-      return "text-indigo-600 bg-indigo-100"
+      return "default"
     default:
-      return "text-gray-600 bg-gray-100"
+      return "outline"
   }
+}
+
+function NavItem({ 
+  item, 
+  isActive, 
+  onClick 
+}: { 
+  item: NavigationItem
+  isActive: boolean
+  onClick?: () => void 
+}) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent",
+        isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-primary"
+      )}
+    >
+      {item.icon}
+      <span>{item.name}</span>
+      {isActive && (
+        <ChevronRight className="ml-auto h-4 w-4" />
+      )}
+    </Link>
+  )
 }
 
 export default function DashboardLayout({
@@ -172,195 +171,161 @@ export default function DashboardLayout({
   const { data: session, status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
-  // Redirect if not authenticated
   useEffect(() => {
-    if (status === "loading") return // Still loading
+    if (status === "loading") return
     if (!session) {
       router.push("/login")
-      return
     }
   }, [session, status, router])
 
-  // Show loading state
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
     )
   }
 
-  // Don't render if no session
-  if (!session) {
-    return null
-  }
+  if (!session) return null
 
   const userRole = session.user.role
+  const userEmail = session.user.email || ""
+  const userInitial = userEmail.charAt(0).toUpperCase()
+  
   const filteredNavigation = navigation.filter(item => 
     item.roles.includes(userRole)
   )
 
   const isCurrentPath = (href: string) => {
-    if (href === `/${userRole.toLowerCase()}` || href === `/${userRole.toLowerCase().replace('_', '-')}`) {
+    const roleBase = `/${userRole.toLowerCase().replace('_', '-')}`
+    if (href === roleBase) {
       return pathname === href
     }
     return pathname.startsWith(href)
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? '' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
-          <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">HM</span>
-              </div>
-              <span className="ml-2 text-lg font-semibold text-gray-900">Hostel Management</span>
-            </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <nav className="flex-1 space-y-1 px-4 py-4">
-            {filteredNavigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isCurrentPath(item.href)
-                    ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                {item.icon}
-                <span className="ml-3">{item.name}</span>
-              </Link>
-            ))}
-          </nav>
-          
-          <div className="border-t border-gray-200 p-4">
-            <div className="flex items-center mb-3">
-              <div className="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 font-medium text-sm">
-                  {session.user.email?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">{session.user.email}</p>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(userRole)}`}>
-                  {userRole.replace('_', ' ')}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() => signOut()}
-              className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
-            >
-              <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Sign out
-            </button>
-          </div>
+  const SidebarContent = () => (
+    <>
+      <div className="flex h-16 items-center gap-2 px-6 lg:h-[60px]">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span className="text-sm font-bold">HM</span>
         </div>
+        <span className="font-semibold">Hostel Management</span>
       </div>
-
-      {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col lg:bg-white lg:border-r lg:border-gray-200">
-        <div className="flex h-16 items-center px-6 border-b border-gray-200">
-          <div className="flex items-center">
-            <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">HM</span>
-            </div>
-            <span className="ml-2 text-lg font-semibold text-gray-900">Hostel Management</span>
-          </div>
-        </div>
-        
-        <nav className="flex-1 space-y-1 px-4 py-4">
+      
+      <Separator />
+      
+      <ScrollArea className="flex-1 px-3">
+        <div className="space-y-1 py-4">
           {filteredNavigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                isCurrentPath(item.href)
-                  ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-700'
-                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-              }`}
-            >
-              {item.icon}
-              <span className="ml-3">{item.name}</span>
-            </Link>
+            <NavItem
+              key={item.href}
+              item={item}
+              isActive={isCurrentPath(item.href)}
+              onClick={() => setMobileOpen(false)}
+            />
           ))}
-        </nav>
-        
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-center mb-3">
-            <div className="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 font-medium">
-                {session.user.email?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-900">{session.user.email}</p>
-              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(userRole)}`}>
-                {userRole.replace('_', ' ')}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={() => signOut()}
-            className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
-          >
-            <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sign out
-          </button>
         </div>
+      </ScrollArea>
+      
+      <Separator />
+      
+      <div className="p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar>
+            <AvatarFallback>{userInitial}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-medium leading-none truncate">{userEmail}</p>
+            <Badge variant={getRoleVariant(userRole)} className="text-xs">
+              {userRole.replace('_', ' ')}
+            </Badge>
+          </div>
+        </div>
+        <Button 
+          variant="outline" 
+          className="w-full justify-start text-destructive hover:text-destructive"
+          onClick={() => signOut()}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign out
+        </Button>
       </div>
+    </>
+  )
 
-      {/* Main content */}
-      <div className="lg:pl-64">
-        {/* Mobile header */}
-        <div className="flex h-16 items-center justify-between bg-white border-b border-gray-200 px-4 lg:hidden">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-gray-500 hover:text-gray-700"
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Mobile Sidebar */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-72 p-0">
+          <SidebarContent />
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col lg:border-r">
+        <SidebarContent />
+      </aside>
+
+      {/* Main Content */}
+      <div className="lg:pl-72">
+        {/* Mobile Header */}
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 lg:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(true)}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div className="flex items-center">
-            <div className="h-6 w-6 bg-blue-600 rounded flex items-center justify-center mr-2">
-              <span className="text-white font-bold text-xs">HM</span>
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle menu</span>
+          </Button>
+          
+          <div className="flex flex-1 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <span className="text-xs font-bold">HM</span>
+              </div>
+              <span className="font-semibold">Hostel Management</span>
             </div>
-            <span className="font-semibold text-gray-900">Hostel Management</span>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs">{userInitial}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{userEmail}</p>
+                    <Badge variant={getRoleVariant(userRole)} className="text-xs mt-1">
+                      {userRole.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => signOut()}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <div className="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
-            <span className="text-gray-600 font-medium text-sm">
-              {session.user.email?.charAt(0).toUpperCase()}
-            </span>
-          </div>
-        </div>
+        </header>
 
-        {/* Page content */}
-        <main className="min-h-screen">
+        {/* Page Content */}
+        <main className="min-h-[calc(100vh-4rem)] lg:min-h-screen">
           {children}
         </main>
       </div>

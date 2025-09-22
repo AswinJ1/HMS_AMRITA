@@ -6,7 +6,7 @@ export default function Home() {
       {/* Logo */}
       <div className="flex flex-col items-center gap-4">
         <Image
-          src="/amrita-logo.png" // make sure this file exists in public/
+          src="/logo.png" // make sure this file exists in public/
           alt="Amrita Logo"
           width={120}
           height={120}
