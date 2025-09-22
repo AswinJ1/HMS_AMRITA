@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -13,10 +13,12 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
+    // Await the params to extract the id
+    const { id } = await params
     const body = await request.json()
     const { status, comments } = body
     
-    console.log(`🔄 Updating approval ${params.id} with status: ${status}`)
+    console.log(`🔄 Updating approval ${id} with status: ${status}`)
     
     // Validate status
     if (!["APPROVED", "REJECTED"].includes(status)) {
@@ -25,7 +27,7 @@ export async function PUT(
     
     // Find the approval record
     const approval = await prisma.staybackApproval.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         request: {
           include: {
@@ -65,7 +67,7 @@ export async function PUT(
     
     // Update the approval
     const updatedApproval = await prisma.staybackApproval.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status,
         comments: comments || null,
@@ -73,7 +75,7 @@ export async function PUT(
       },
     })
     
-    console.log(`✅ Approval ${params.id} updated successfully`)
+    console.log(`✅ Approval ${id} updated successfully`)
     
     return NextResponse.json(updatedApproval)
   } catch (error) {
