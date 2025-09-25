@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Role } from "@prisma/client"
 
 // shadcn/ui imports
 import { Button } from "@/components/ui/button"
@@ -115,7 +114,7 @@ export default function SecurityMonitoring() {
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set())
   
   useEffect(() => {
-    if (!session?.user || session.user.role !== Role.SECURITY) {
+    if (!session?.user || session.user.role !== "SECURITY") {
       router.push("/unauthorized")
       return
     }
