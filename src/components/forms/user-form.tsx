@@ -187,7 +187,7 @@ const UserForm = () => {
             {(watchRole === "STAFF" || watchRole === "SECURITY") && (
               <div>
                 <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
-                  Department (Optional)
+                  Department(Optional)
                 </label>
                 <input
                   type="text"
