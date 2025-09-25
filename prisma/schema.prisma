@@ -15,6 +15,7 @@ enum Role {
   STUDENT
   TEAM_LEAD
   HOSTEL
+  SECURITY
 }
 
 enum RequestStatus {
@@ -44,6 +45,7 @@ model User {
   hostel        Hostel?
   teamLead      TeamLead?
   admin         Admin?
+  security      Security?
   
   @@index([email])
   @@index([uid])
@@ -102,6 +104,16 @@ model Hostel {
   
   // Relations
   approvals StaybackApproval[]
+}
+
+model Security {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  department String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TeamLead {

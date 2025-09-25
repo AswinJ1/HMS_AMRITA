@@ -12,13 +12,13 @@ const createUserSchema = z.object({
   email: z.string().email("Invalid email address"),
   uid: z.string().min(1, "UID is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["STAFF", "HOSTEL"]),
+  role: z.enum(["STAFF", "HOSTEL", "SECURITY"]),
   name: z.string().min(1, "Name is required"),
   department: z.string().optional(),
   hostelName: z.string().optional(),
 }).refine((data) => {
-  if (data.role === "STAFF") {
-    return true // department is optional for staff
+  if (data.role === "STAFF" || data.role === "SECURITY") {
+    return true // department is optional for staff and security
   }
   if (data.role === "HOSTEL") {
     return data.hostelName && data.hostelName.length > 0
@@ -90,14 +90,12 @@ const UserForm = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white p-8 rounded-lg shadow-md">
-          <div className="mb-6">
+            <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Create New User</h1>
             <p className="text-gray-600 mt-2">
-              Create staff or hostel users for the system
+              Create staff, hostel, or security users for the system
             </p>
-          </div>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          </div>          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Role Selection */}
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
@@ -110,6 +108,7 @@ const UserForm = () => {
               >
                 <option value="STAFF">Staff</option>
                 <option value="HOSTEL">Hostel</option>
+                <option value="SECURITY">Security</option>
               </select>
               {errors.role && (
                 <p className="text-red-500 text-sm mt-1">{errors.role.message}</p>
@@ -184,8 +183,8 @@ const UserForm = () => {
               )}
             </div>
 
-            {/* Department (for Staff) */}
-            {watchRole === "STAFF" && (
+            {/* Department (for Staff and Security) */}
+            {(watchRole === "STAFF" || watchRole === "SECURITY") && (
               <div>
                 <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
                   Department (Optional)
