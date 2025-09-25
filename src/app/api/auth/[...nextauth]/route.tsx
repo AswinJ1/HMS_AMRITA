@@ -1,5 +1,7 @@
 // app/api/auth/[...nextauth]/route.ts
 
-import { handlers } from "@/lib/auth"
+import NextAuth from "@/lib/auth"
 
-export const { GET, POST } = handlers
+const handler = NextAuth
+
+export { handler as GET, handler as POST }

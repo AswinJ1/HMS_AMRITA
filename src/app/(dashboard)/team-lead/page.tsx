@@ -32,6 +32,15 @@ interface TeamLeadStats {
   clubMembers: number
 }
 
+interface SecurityAlert {
+  requestId: string
+  studentName: string
+  status: "IN" | "OUT"
+  securityName: string
+  timestamp: string
+  comments?: string
+}
+
 export default function TeamLeadDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
@@ -43,6 +52,7 @@ export default function TeamLeadDashboard() {
     clubName: "",
     clubMembers: 0,
   })
+  const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -101,6 +111,38 @@ export default function TeamLeadDashboard() {
           clubName,
           clubMembers,
         })
+
+        // Extract recent security alerts from team lead approvals
+        const recentSecurityAlerts: SecurityAlert[] = []
+        
+        approvals.forEach((approval: any) => {
+          if (approval.comments && approval.comments.includes('[SECURITY UPDATE]')) {
+            const lines = approval.comments.split('\n')
+            lines.forEach((line: string) => {
+              if (line.includes('[SECURITY UPDATE]')) {
+                const securityMatch = line.match(/\[SECURITY UPDATE\] Student marked as (IN|OUT) by Security: ([^-]+)(?:-(.+))?/)
+                if (securityMatch) {
+                  const [, status, securityName, additionalComment] = securityMatch
+                  recentSecurityAlerts.push({
+                    requestId: approval.request?.id || approval.id,
+                    studentName: approval.request?.student?.name || 'Unknown Student',
+                    status: status as "IN" | "OUT",
+                    securityName: securityName.trim(),
+                    timestamp: approval.updatedAt || approval.createdAt,
+                    comments: additionalComment?.trim()
+                  })
+                }
+              }
+            })
+          }
+        })
+
+        // Sort by timestamp (most recent first) and limit to 5
+        const sortedAlerts = recentSecurityAlerts
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .slice(0, 5)
+        
+        setSecurityAlerts(sortedAlerts)
       } else {
         setError("Failed to fetch approvals")
       }
@@ -436,6 +478,67 @@ export default function TeamLeadDashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Security Alerts Section */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-red-700">Security Alerts</CardTitle>
+                  <p className="text-sm text-gray-600">Recent Present/Absent updates from Security</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {securityAlerts.length > 0 ? (
+                <div className="space-y-3">
+                  {securityAlerts.map((alert, index) => (
+                    <div key={`${alert.requestId}-${index}`} className={`p-3 rounded-lg border-l-4 ${
+                      alert.status === 'IN' ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            alert.status === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {alert.status === 'IN' ? 'Present' : 'Absent'}
+                          </span>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {alert.studentName}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              by {alert.securityName}
+                              {alert.comments && ` - ${alert.comments}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(alert.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-gray-200">
+                    <Link href="/team-lead/approvals" className="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                      View all approvals with security updates →
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm">No recent security alerts</p>
+                  <p className="text-xs text-gray-400 mt-1">Security Present/Absent updates will appear here</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </main>
     </div>
   )

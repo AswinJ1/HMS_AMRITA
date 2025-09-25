@@ -1,12 +1,13 @@
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
+import NextAuth, { NextAuthOptions } from "next-auth"
+import { getServerSession } from "next-auth/next"
+import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
-import { PrismaAdapter } from "@auth/prisma-adapter"
+import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { loginSchema } from "@/lib/validations/auth"
 import { Role } from "@prisma/client"
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
@@ -16,7 +17,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: "/login",
   },
   providers: [
-    Credentials({
+    CredentialsProvider({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -47,8 +48,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 student: true,
               },
             })
-          } else if (role === "STAFF" || role === "HOSTEL" || role === "TEAM_LEAD") {
-            // Staff, Hostel, and Team Lead login with UID
+          } else if (role === "STAFF" || role === "HOSTEL" || role === "TEAM_LEAD" || role === "SECURITY") {
+            // Staff, Hostel, Team Lead, and Security login with UID
             if (!uid) throw new Error("UID is required")
             
             user = await prisma.user.findUnique({
@@ -57,6 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 staff: role === "STAFF" ? true : undefined,
                 teamLead: role === "TEAM_LEAD" ? true : undefined,
                 hostel: role === "HOSTEL" ? true : undefined,
+                security: role === "SECURITY" ? true : undefined,
                 // Only include what we need for each role
               },
             })
@@ -108,4 +110,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session
     },
   },
-})
+}
+
+export default NextAuth(authOptions)
+
+// Helper function for server components
+export const auth = () => getServerSession(authOptions)

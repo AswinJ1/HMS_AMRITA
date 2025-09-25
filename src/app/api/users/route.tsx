@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
           hostel: true,  // Make sure this matches your schema
           teamLead: true,
           admin: true,
+          security: true,
         },
         orderBy: { createdAt: "desc" },
       })
@@ -125,6 +126,24 @@ export async function POST(request: NextRequest) {
         },
         include: {
           hostel: true,
+        },
+      })
+    } else if (validatedData.role === "SECURITY") {
+      user = await prisma.user.create({
+        data: {
+          email: validatedData.email,
+          uid: validatedData.uid,
+          password: hashedPassword,
+          role: "SECURITY",
+          security: {
+            create: {
+              name: validatedData.name,
+              department: validatedData.department,
+            },
+          },
+        },
+        include: {
+          security: true,
         },
       })
     } else {

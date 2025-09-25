@@ -64,7 +64,29 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     })
     
-    return NextResponse.json(requests)
+    // Add security tracking info to each request
+    const requestsWithSecurity = await Promise.all(requests.map(async (request) => {
+      // Find security tracking approval for this request
+      const securityApproval = await prisma.staybackApproval.findFirst({
+        where: {
+          requestId: request.id,
+          comments: {
+            startsWith: "SECURITY_TRACKING:"
+          }
+        }
+      })
+      
+      return {
+        ...request,
+        securityTracking: securityApproval ? {
+          status: securityApproval.status,
+          comments: securityApproval.comments,
+          approvedAt: securityApproval.approvedAt
+        } : null
+      }
+    }))
+    
+    return NextResponse.json(requestsWithSecurity)
   } catch (error) {
     console.error("Error fetching stayback requests:", error)
     return NextResponse.json(
@@ -169,9 +191,15 @@ export async function POST(request: NextRequest) {
         status: "PENDING",
       },
     })
-    
+
     console.log(`✅ Created stayback request: ${staybackRequest.id}`)
-    console.log(`📋 Creating approvals for - Staff: ${staffId}, Hostel: ${hostelId}, TeamLead: ${finalTeamLeadId}`)
+    
+    // Find a security user for tracking (automatically assign the first available security user)
+    const securityUser = await prisma.security.findFirst({
+      orderBy: { createdAt: 'asc' } // Get the first/primary security user
+    })
+    
+    console.log(`📋 Creating approvals for - Staff: ${staffId}, Hostel: ${hostelId}, TeamLead: ${finalTeamLeadId}, Security: ${securityUser?.id || 'none'}`)
     
     // Create approval records for the specified approvers
     const approvalPromises = []
@@ -224,6 +252,26 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // Create security tracking record - use a special approval entry with comments to identify as security
+    if (securityUser) {
+      // Since we can't add securityId to the approval table without migration,
+      // we'll create a special staff approval with a security identifier in comments
+      approvalPromises.push(
+        prisma.staybackApproval.create({
+          data: {
+            requestId: staybackRequest.id,
+            // We'll use the staffId field but mark it as a security tracking record
+            staffId: null, // Keep this null to differentiate from regular staff approvals
+            status: "PENDING",
+            comments: `SECURITY_TRACKING:${securityUser.id}:${securityUser.name}` // Special format to identify security tracking
+          },
+        }).then(approval => {
+          console.log(`🔒 Created security tracking for security ID: ${securityUser.id}`)
+          return approval
+        })
+      )
+    }
+    
     // Ensure at least one approver is assigned
     if (approvalPromises.length === 0) {
       // Delete the request if no approvers could be assigned
@@ -253,6 +301,7 @@ export async function POST(request: NextRequest) {
           staff: staffId ? true : false,
           hostel: hostelId ? true : false,
           teamLead: finalTeamLeadId ? true : false,
+          security: securityUser ? true : false,
         }
       },
       { status: 201 }

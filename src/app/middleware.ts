@@ -11,6 +11,7 @@ const roleAccess = {
   STUDENT: ["/student", "/api/stayback"],
   TEAM_LEAD: ["/team-lead", "/api/approvals"],
   HOSTEL: ["/hostel", "/api/approvals"],
+  SECURITY: ["/security", "/api/security"],
 }
 
 // Public routes that don't require authentication
@@ -72,6 +73,8 @@ function getDashboardUrl(role: string): string {
       return "/team-lead"
     case "HOSTEL":
       return "/hostel"
+    case "SECURITY":
+      return "/security"
     default:
       return "/"
   }

@@ -25,7 +25,7 @@ export const loginSchema = z.object({
   email: z.string().email().optional(),
   uid: z.string().optional(),
   password: z.string().min(1, "Password is required"),
-  role: z.enum(["ADMIN", "STAFF", "HOSTEL", "TEAM_LEAD", "STUDENT"], {
+  role: z.enum(["ADMIN", "STAFF", "HOSTEL", "TEAM_LEAD", "STUDENT", "SECURITY"], {
     message: "Please select a valid role",
   }),
 }).refine((data) => {
@@ -37,8 +37,8 @@ export const loginSchema = z.object({
   if (data.role === "STUDENT" && !data.email && !data.uid) {
     return false
   }
-  // STAFF, HOSTEL, TEAM_LEAD: Requires UID (but should also have email)
-  if ((data.role === "STAFF" || data.role === "HOSTEL" || data.role === "TEAM_LEAD") && !data.uid) {
+  // STAFF, HOSTEL, TEAM_LEAD, SECURITY: Requires UID (but should also have email)
+  if ((data.role === "STAFF" || data.role === "HOSTEL" || data.role === "TEAM_LEAD" || data.role === "SECURITY") && !data.uid) {
     return false
   }
   return true
@@ -72,19 +72,17 @@ export const studentRegisterSchema = z.object({
   path: ["confirmPassword"],
 })
 
-// Staff/Hostel user creation schema (by admin)
+// Staff/Hostel/Security user creation schema (by admin)
 export const createUserSchema = z.object({
   email: z.string().email("Invalid email address"),
   uid: z.string().min(1, "UID is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
-  role: z.enum(["STAFF", "HOSTEL"]),
-  department: z.string().optional(), // For staff
+  role: z.enum(["STAFF", "HOSTEL", "SECURITY"]),
+  department: z.string().optional(), // For staff and security
   hostelName: z.string().optional(), // For hostel
 }).refine((data) => {
-  if (data.role === "STAFF" && !data.department) {
-    return false
-  }
+  // Department is not required for STAFF or SECURITY - it's optional
   if (data.role === "HOSTEL" && !data.hostelName) {
     return false
   }

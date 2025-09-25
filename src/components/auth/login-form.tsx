@@ -64,9 +64,9 @@ export function LoginForm() {
   const watchRole = form.watch("role")
   
   // Determine which credential fields to show
-  const showEmail = watchRole === "ADMIN" || watchRole === "STUDENT" || watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD"
-  const showUID = watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD" || watchRole === "STUDENT"
-  const isUIDRequired = watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD"
+  const showEmail = watchRole === "ADMIN" || watchRole === "STUDENT" || watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD" || watchRole === "SECURITY"
+  const showUID = watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD" || watchRole === "STUDENT" || watchRole === "SECURITY"
+  const isUIDRequired = watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD" || watchRole === "SECURITY"
   const isEmailRequired = watchRole === "ADMIN" || watchRole === "STUDENT"
 
   const handleRoleChange = (role: Role) => {
@@ -110,7 +110,8 @@ export function LoginForm() {
       STAFF: "secondary", 
       ADMIN: "destructive",
       HOSTEL: "outline",
-      TEAM_LEAD: "secondary"
+      TEAM_LEAD: "secondary",
+      SECURITY: "outline"
     }
     return variants[role] as "default" | "secondary" | "destructive" | "outline"
   }
@@ -121,7 +122,8 @@ export function LoginForm() {
       STAFF: "Manage approvals and team lead operations", 
       ADMIN: "Full system administration access",
       HOSTEL: "Manage hostel-specific approvals",
-      TEAM_LEAD: "Approve requests for your club members"
+      TEAM_LEAD: "Approve requests for your club members",
+      SECURITY: "Monitor campus security and oversee activities"
     }
     return descriptions[role]
   }
@@ -185,6 +187,7 @@ export function LoginForm() {
                           <SelectItem value="ADMIN">Admin</SelectItem>
                           <SelectItem value="HOSTEL">Hostel Admin</SelectItem>
                           <SelectItem value="TEAM_LEAD">Team Lead</SelectItem>
+                          <SelectItem value="SECURITY">Security</SelectItem>
                         </SelectContent>
                       </Select>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2">
@@ -371,6 +374,7 @@ function getDashboardUrl(role: Role): string {
     STUDENT: "/student",
     TEAM_LEAD: "/team-lead",
     HOSTEL: "/hostel",
+    SECURITY: "/security",
   }
   return dashboards[role] || "/"
 }

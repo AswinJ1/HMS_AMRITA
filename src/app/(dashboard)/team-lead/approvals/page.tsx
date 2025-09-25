@@ -402,8 +402,12 @@ const TeamLeadApprovalsPage = () => {
                         {approval.approvedAt ? formatDate(approval.approvedAt) : "-"}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {approval.comments || "-"}
+                        <div className="text-sm text-gray-900 max-w-xs">
+                          {approval.comments ? (
+                            <div className="truncate">{approval.comments}</div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </div>
                       </td>
                     </tr>

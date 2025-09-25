@@ -462,11 +462,13 @@ const StaffApprovalsPage = () => {
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 max-w-xs">
                           {approval.comments && (
-      <div className="mb-1">
-        <span className="font-medium text-xs text-blue-600">Staff:</span>
-        <p className="text-xs truncate">{approval.comments}</p>
-      </div>
-    )}
+                            <div className="mb-2">
+                              <div className="mb-1">
+                                <span className="font-medium text-xs text-blue-600">Staff:</span>
+                                <p className="text-xs truncate">{approval.comments}</p>
+                              </div>
+                            </div>
+                          )}
     {approval.request.approvals && approval.request.approvals.length > 0 &&
       approval.request.approvals
         .filter((teamApproval) => teamApproval.teamLead && teamApproval.comments)
