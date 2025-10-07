@@ -49,6 +49,7 @@ function getDashboardUrl(role: Role): string {
     STUDENT: "/student",
     TEAM_LEAD: "/team-lead",
     HOSTEL: "/hostel",
+    SECURITY: "/security",
   }
   return dashboards[role] || "/"
 }
