@@ -22,12 +22,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Security user not found" }, { status: 404 })
     }
     
-    // Get all stayback requests that have security tracking
-    // Look for approvals with security tracking comments
+    // 🟢 CHANGE: Get ALL security tracking approvals, not just for this security user
     const securityApprovals = await prisma.staybackApproval.findMany({
       where: {
         comments: {
-          startsWith: `SECURITY_TRACKING:${security.id}:`
+          startsWith: `SECURITY_TRACKING:`  // Remove the specific security.id filter
         }
       },
       include: {

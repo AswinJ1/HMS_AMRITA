@@ -171,6 +171,10 @@ model StaybackApproval {
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
   
+  securityStatus     String?    // "IN" | "OUT" | null
+  securityCheckedBy  String?    // Name of security person
+  securityCheckedAt  DateTime?  // When checked
+  
   @@unique([requestId, staffId])
   @@unique([requestId, hostelId])
   @@unique([requestId, teamLeadId])
