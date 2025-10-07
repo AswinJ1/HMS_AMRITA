@@ -53,7 +53,7 @@ export default function SecurityDashboard() {
   const [error, setError] = useState<string | null>(null)
   
   useEffect(() => {
-    if (!session?.user || (session.user.role as string) !== "SECURITY") {
+    if (session?.user?.role !== "SECURITY") {
       router.push("/unauthorized")
       return
     }

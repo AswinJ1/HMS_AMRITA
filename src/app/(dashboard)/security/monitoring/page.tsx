@@ -75,7 +75,7 @@ export default function SecurityMonitoring() {
   const [comments, setComments] = useState("")
   
   useEffect(() => {
-    if (!session?.user || (session.user.role as string) !== "SECURITY") {
+    if (!session?.user || session.user.role !== "SECURITY") {
       router.push("/unauthorized")
       return
     }
