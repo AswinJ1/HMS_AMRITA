@@ -15,7 +15,10 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  EyeIcon,
+  Edit,
+  User2Icon
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -95,6 +98,32 @@ const navigation: NavigationItem[] = [
     icon: <CheckCircle className="w-5 h-5" />,
     roles: ["STAFF"]
   },
+
+  {
+    name: "Home",
+    href: "/security",
+    icon: <LayoutDashboard className="w-5 h-5" />,
+    roles: ["SECURITY"]
+
+  },
+  {
+    name: "Monitor",
+    href: "/security/monitoring",
+    icon: <EyeIcon className="w-5 h-5" />,
+    roles: ["SECURITY"]
+  },
+  {
+    name: "Edit Profile",
+    href: "/security/edit_profile",
+    icon: <Edit className="w-5 h-5" />,
+    roles: ["SECURITY"]
+  },
+   {
+    name: " Profile",
+    href: "/security/profile",
+    icon: <User2Icon className="w-5 h-5" />,
+    roles: ["SECURITY"]
+  },
   {
     name: "Team Leads",
     href: "/staff/team-leads",
@@ -126,8 +155,9 @@ const getRoleVariant = (role: string): "default" | "secondary" | "destructive" |
     case "ADMIN":
       return "destructive"
     case "HOSTEL":
-    case "STAFF":
+    case "STAFF":  
     case "TEAM_LEAD":
+    case "SECURITY":
       return "secondary"
     case "STUDENT":
       return "default"
@@ -235,7 +265,7 @@ export default function DashboardLayout({
       
       <Separator />
       
-      <div className="p-4">
+      {/* <div className="p-4">
         <div className="flex items-center gap-3 mb-3">
           <Avatar>
             <AvatarFallback>{userInitial}</AvatarFallback>
@@ -255,7 +285,7 @@ export default function DashboardLayout({
           <LogOut className="mr-2 h-4 w-4" />
           Sign out
         </Button>
-      </div>
+      </div> */}
     </>
   )
 
