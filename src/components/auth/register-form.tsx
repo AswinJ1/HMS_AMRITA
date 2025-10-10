@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -36,20 +36,33 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [selectedClub, setSelectedClub] = useState("")
   
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(studentRegisterSchema),
-  })
+ const {
+  register,
+  handleSubmit,
+  formState: { errors },
+  setValue,
+  watch,
+} = useForm<RegisterFormData>({
+  resolver: zodResolver(studentRegisterSchema),
+  defaultValues: {
+    name: "",
+    email: "",
+    uid: "",
+    password: "",
+    confirmPassword: "",
+    clubName: "", // critical for hidden input sync
+    hostelName: "",
+    roomNo: "",
+    phoneNumber: ""
+  },
+})
+
 
   // Watch for club selection changes
   const watchClub = watch("clubName")
 
   const onSubmit = async (data: RegisterFormData) => {
+    console.log("Submitting data:", data)
     setIsLoading(true)
     setError(null)
     
@@ -75,13 +88,17 @@ export function RegisterForm() {
     }
   }
 
-  const handleClubSelect = (value: string) => {
-    const club = clubs.find(c => c.id === value)
-    if (club) {
-      setSelectedClub(club.name)
-      setValue("clubName", club.name)
-    }
+const handleClubSelect = (value: string) => {
+  const club = clubs.find(c => c.id === value)
+  if (club) {
+    setSelectedClub(club.name)
+    setValue("clubName", club.name, { shouldValidate: true })
+  } else { 
+    setSelectedClub("")
+    setValue("clubName", "", { shouldValidate: true })
   }
+}
+
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
