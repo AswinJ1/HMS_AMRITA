@@ -147,6 +147,12 @@ const navigation: NavigationItem[] = [
     href: "/student/stayback",
     icon: <Plus className="w-5 h-5" />,
     roles: ["STUDENT"]
+  },
+   {
+    name: "Profile",
+    href: "/student/profile",
+    icon: <User2Icon className="w-5 h-5" />,
+    roles: ["STUDENT"]
   }
 ]
 

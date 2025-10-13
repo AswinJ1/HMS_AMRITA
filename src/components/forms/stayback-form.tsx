@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { staybackRequestSchema, StaybackRequestInput } from "@/lib/validations/stayback"
 import { format } from "date-fns"
+import { useSession } from "next-auth/react"
 
 interface StaffOption {
   id: string
@@ -31,6 +32,13 @@ interface TeamLeadOption {
   email: string
 }
 
+interface StudentProfile {
+  student: {
+    hostelName: string
+    clubName: string
+  }
+}
+
 interface ExtendedStaybackInput extends StaybackRequestInput {
   staffId: string
   hostelId: string
@@ -42,11 +50,11 @@ const CLUB_OPTIONS = [
   "bi0s",
   "amFOSS",
   "ICPC_Amrita",
-
 ]
 
 export function StaybackForm() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -56,6 +64,9 @@ export function StaybackForm() {
   const [hostelOptions, setHostelOptions] = useState<HostelOption[]>([])
   const [teamLeadOptions, setTeamLeadOptions] = useState<TeamLeadOption[]>([])
   const [isLoadingOptions, setIsLoadingOptions] = useState(true)
+  
+  // Student profile data
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
   
   const {
     register,
@@ -76,6 +87,26 @@ export function StaybackForm() {
   const watchFromTime = watch("fromTime")
   const watchClubName = watch("clubName")
   const watchTeamLeadId = watch("teamLeadId")
+  const watchHostelId = watch("hostelId")
+  
+  // Fetch student profile
+  useEffect(() => {
+    const fetchStudentProfile = async () => {
+      try {
+        const response = await fetch("/api/profile")
+        if (response.ok) {
+          const data = await response.json()
+          setStudentProfile(data)
+        }
+      } catch (error) {
+        console.error("Error fetching student profile:", error)
+      }
+    }
+    
+    if (session?.user) {
+      fetchStudentProfile()
+    }
+  }, [session])
   
   // Fetch available staff, hostel wardens, and team leads
   useEffect(() => {
@@ -120,10 +151,8 @@ export function StaybackForm() {
         tl => tl.clubName.toLowerCase() === watchClubName.toLowerCase()
       )
       if (matchingTeamLead) {
-        // Auto-select the matching team lead
         setValue("teamLeadId", matchingTeamLead.id)
       } else {
-        // Clear team lead selection if no match found
         setValue("teamLeadId", "")
       }
     }
@@ -177,7 +206,23 @@ export function StaybackForm() {
       )
     : teamLeadOptions
   
-  if (isLoadingOptions) {
+  // Filter hostel wardens based on student's hostel
+  const availableHostelOptions = studentProfile?.student.hostelName
+    ? hostelOptions.filter(h => 
+        h.hostelName.toLowerCase() === studentProfile.student.hostelName.toLowerCase()
+      )
+    : hostelOptions
+  
+  // Check if student can select the club
+  const canSelectClub = (clubName: string): boolean => {
+    if (!studentProfile?.student.clubName) return false
+    return studentProfile.student.clubName.toLowerCase() === clubName.toLowerCase()
+  }
+  
+  // Check if selected hostel matches student's hostel
+  const selectedHostelMatches = watchHostelId && availableHostelOptions.some(h => h.id === watchHostelId)
+  
+  if (isLoadingOptions || !studentProfile) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
         <div className="flex justify-center items-center h-64">
@@ -191,6 +236,15 @@ export function StaybackForm() {
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-6">Submit Stayback Request</h2>
       
+      {/* Student Info Display */}
+      <div className="bg-blue-50 p-4 rounded-md mb-6">
+        <h3 className="font-medium text-sm mb-2">Your Profile Information:</h3>
+        <ul className="text-sm text-gray-700 space-y-1">
+          <li>• <strong>Hostel:</strong> {studentProfile.student.hostelName || "Not assigned"}</li>
+          <li>• <strong>Club:</strong> {studentProfile.student.clubName || "Not assigned"}</li>
+        </ul>
+      </div>
+      
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Club Name Dropdown */}
         <div>
@@ -200,16 +254,44 @@ export function StaybackForm() {
           <select
             {...register("clubName")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => {
+              const selectedClub = e.target.value
+              if (selectedClub && !canSelectClub(selectedClub)) {
+                setError(`You can only select the club that you are in: ${studentProfile.student.clubName}`)
+                e.target.value = ""
+              } else {
+                setError(null)
+                setValue("clubName", selectedClub)
+              }
+            }}
           >
             <option value="">-- Select Club --</option>
-            {CLUB_OPTIONS.map(club => (
-              <option key={club} value={club}>
-                {club}
-              </option>
-            ))}
+            {CLUB_OPTIONS.map(club => {
+              const isStudentClub = canSelectClub(club)
+              return (
+                <option 
+                  key={club} 
+                  value={club}
+                  disabled={!isStudentClub}
+                  className={!isStudentClub ? "text-gray-400" : ""}
+                >
+                  {club} {isStudentClub ? "✓" : "(Not your club)"}
+                </option>
+              )
+            })}
           </select>
           {errors.clubName && (
             <p className="text-red-500 text-sm mt-1">{errors.clubName.message}</p>
+          )}
+          {!studentProfile.student.clubName && (
+            <p className="text-orange-500 text-sm mt-1">
+              ⚠️ You don't have a club assigned. Please update your profile first.
+            </p>
+          )}
+          {studentProfile.student.clubName && (
+            <p className="text-green-600 text-sm mt-1">
+              ℹ️ You can only select your club: <strong>{studentProfile.student.clubName}</strong>
+            </p>
           )}
         </div>
         
@@ -278,14 +360,43 @@ export function StaybackForm() {
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">-- Select Hostel Warden --</option>
-            {hostelOptions.map(hostel => (
-              <option key={hostel.id} value={hostel.id}>
-                {hostel.name} ({hostel.hostelName}) - {hostel.email}
-              </option>
-            ))}
+            {hostelOptions.map(hostel => {
+              const isStudentHostel = studentProfile.student.hostelName && 
+                hostel.hostelName.toLowerCase() === studentProfile.student.hostelName.toLowerCase()
+              return (
+                <option 
+                  key={hostel.id} 
+                  value={hostel.id}
+                  disabled={!isStudentHostel}
+                  className={!isStudentHostel ? "text-gray-400" : ""}
+                >
+                  {hostel.name} ({hostel.hostelName}) {isStudentHostel ? "✓" : "(Not your hostel)"}
+                </option>
+              )
+            })}
           </select>
           {errors.hostelId && (
             <p className="text-red-500 text-sm mt-1">{errors.hostelId.message}</p>
+          )}
+          {!studentProfile.student.hostelName && (
+            <p className="text-orange-500 text-sm mt-1">
+              ⚠️ You don't have a hostel assigned. Please update your profile first.
+            </p>
+          )}
+          {studentProfile.student.hostelName && availableHostelOptions.length === 0 && (
+            <p className="text-orange-500 text-sm mt-1">
+              ⚠️ No warden found for your hostel "{studentProfile.student.hostelName}". Please contact admin.
+            </p>
+          )}
+          {studentProfile.student.hostelName && availableHostelOptions.length > 0 && (
+            <p className="text-green-600 text-sm mt-1">
+              ℹ️ You can only select warden from your hostel: <strong>{studentProfile.student.hostelName}</strong>
+            </p>
+          )}
+          {watchHostelId && !selectedHostelMatches && (
+            <p className="text-red-500 text-sm mt-1">
+              ⚠️ You can only select a hostel warden from your assigned hostel: {studentProfile.student.hostelName}
+            </p>
           )}
         </div>
         
@@ -380,9 +491,7 @@ export function StaybackForm() {
         <div className="bg-gray-50 p-4 rounded-md">
           <h3 className="font-medium text-sm mb-2">Request will be sent to:</h3>
           <ul className="text-sm text-gray-600 space-y-1">
-            {watchClubName && (
-              <li>• <strong>Club:</strong> {watchClubName}</li>
-            )}
+           
             {watch("teamLeadId") && teamLeadOptions.find(tl => tl.id === watch("teamLeadId")) && (
               <li>• <strong>Team Lead:</strong> {teamLeadOptions.find(tl => tl.id === watch("teamLeadId"))?.name}</li>
             )}
@@ -414,7 +523,16 @@ export function StaybackForm() {
         
         <button
           type="submit"
-          disabled={isLoading || !watchClubName || !watch("staffId") || !watch("hostelId") || !watch("teamLeadId")}
+          disabled={
+            isLoading || 
+            !watchClubName || 
+            !watch("staffId") || 
+            !watch("hostelId") || 
+            !watch("teamLeadId") ||
+            !studentProfile.student.clubName ||
+            !studentProfile.student.hostelName ||
+            Boolean(watchHostelId && !selectedHostelMatches)
+          }
           className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? "Submitting..." : "Submit Request"}
