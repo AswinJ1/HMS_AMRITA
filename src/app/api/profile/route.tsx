@@ -48,7 +48,7 @@ export async function PATCH(request: NextRequest) {
     }
     
     const body = await request.json()
-    const { name, department, hostelName, phoneNumber, roomNo, currentPassword, newPassword } = body
+    const { name, department, hostelName, phoneNumber, roomNo, currentPassword, newPassword, clubName } = body
     
     // Get current user with all relations
     const user = await prisma.user.findUnique({
@@ -219,6 +219,8 @@ export async function PATCH(request: NextRequest) {
                 name: name || user.student.name,
                 phoneNumber: phoneNumber || user.student.phoneNumber,
                 roomNo: roomNo || user.student.roomNo,
+                hostelName: hostelName || user.student.hostelName,
+                clubName: clubName || user.student.clubName,
               }
             }
           },
