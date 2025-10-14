@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 // Import icons - install lucide-react if not already installed: npm install lucide-react
 import { 
@@ -45,6 +46,22 @@ interface SecurityAlert {
   comments?: string
 }
 
+interface StaffProfile {
+  id: string
+  email: string
+  uid: string
+  role: string
+  createdAt: string
+  staff: {
+    id: string
+    name: string
+    department: string
+    createdAt: string
+    gender: "male" | "female"
+    avatarUrl?: string
+  }
+}
+
 export default function StaffDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
@@ -59,6 +76,32 @@ export default function StaffDashboard() {
   const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [profile, setProfile] = useState<StaffProfile | null>(null)
+   useEffect(() => {
+    fetchProfile()
+  }, [])
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch("/api/profile")
+      if (response.ok) {
+        const data = await response.json()
+        setProfile(data)
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+   const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+  }
 
   useEffect(() => {
     if (session?.user?.role !== "STAFF") {
@@ -168,7 +211,7 @@ export default function StaffDashboard() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <div>
+            {/* <div>
               <h1 className="text-2xl font-bold text-gray-900">Staff Dashboard</h1>
               <p className="text-sm text-gray-600 mt-1">Manage approvals and team leads</p>
             </div>
@@ -183,6 +226,30 @@ export default function StaffDashboard() {
               >
                 Logout
               </Button>
+            </div> */}
+              <div className="flex items-center gap-4">
+              {/* Avatar */}
+              {/* <Link href="/student/profile"> */}
+                <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-blue-100 hover:ring-blue-300 transition-all">
+                  {profile?.staff?.avatarUrl ? (
+                    <AvatarImage src={profile.staff.avatarUrl} alt={profile.staff.name} />
+                  ) : (
+                    <AvatarFallback className="bg-blue-600 text-white">
+                      {isLoading ? "..." : profile?.staff?.name ? getInitials(profile.staff.name) : "ST"}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              {/* </Link> */}
+              
+              {/* Name and Role */}
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {isLoading ? "Loading..." : profile?.staff?.name || session?.user?.name || "Staff"}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {profile?.staff?.department || "Staff Dashboard"}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -204,7 +271,7 @@ export default function StaffDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Welcome back!</h2>
+                <h2 className="text-xl font-semibold text-gray-900"> Welcome back, {profile?.staff?.name?.split(" ")[0] || "Staff"}! 👋</h2>
                 <p className="text-gray-600 mt-1">
                   Review stayback requests and manage team lead assignments
                 </p>
