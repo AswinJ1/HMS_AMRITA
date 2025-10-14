@@ -21,6 +21,7 @@ import {
   Users,
   Home
 } from "lucide-react"
+import { AvatarSelector } from "@/components/avatar-selector"
 
 interface StudentProfile {
   id: string
@@ -37,6 +38,8 @@ interface StudentProfile {
     hostelName: string
     roomNo: string
     clubName: string
+    gender: "male" | "female"
+    avatarUrl?: string
     createdAt: string
   }
 }
@@ -73,6 +76,28 @@ export default function StudentProfilePage() {
       setError("An error occurred while loading profile")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleAvatarSave = async (avatarUrl: string) => {
+    try {
+      const response = await fetch("/api/profile/avatar", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ avatarUrl }),
+      })
+
+      if (response.ok) {
+        // Refresh profile data
+        await fetchProfile()
+      } else {
+        throw new Error("Failed to update avatar")
+      }
+    } catch (error) {
+      console.error("Error updating avatar:", error)
+      throw error
     }
   }
 
@@ -139,11 +164,12 @@ export default function StudentProfilePage() {
           <Card className="md:col-span-1">
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center">
-                <Avatar className="h-24 w-24 mb-4">
-                  <AvatarFallback className="bg-blue-600 text-white text-2xl">
-                    {getInitials(profile.student.name)}
-                  </AvatarFallback>
-                </Avatar>
+                <AvatarSelector
+                  currentAvatar={profile.student.avatarUrl}
+                  gender={profile.student.gender}
+                  onSave={handleAvatarSave}
+                  fallbackInitials={getInitials(profile.student.name)}
+                />
                 
                 <h2 className="text-2xl font-bold text-gray-900 mb-1">
                   {profile.student.name}
