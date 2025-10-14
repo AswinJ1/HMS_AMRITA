@@ -16,9 +16,10 @@ import {
   Menu,
   X,
   ChevronRight,
-  EyeIcon,
+  Eye,
   Edit,
-  User2Icon
+  User,
+  ChevronLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -98,18 +99,16 @@ const navigation: NavigationItem[] = [
     icon: <CheckCircle className="w-5 h-5" />,
     roles: ["STAFF"]
   },
-
   {
     name: "Home",
     href: "/security",
     icon: <LayoutDashboard className="w-5 h-5" />,
     roles: ["SECURITY"]
-
   },
   {
     name: "Monitor",
     href: "/security/monitoring",
-    icon: <EyeIcon className="w-5 h-5" />,
+    icon: <Eye className="w-5 h-5" />,
     roles: ["SECURITY"]
   },
   {
@@ -118,10 +117,10 @@ const navigation: NavigationItem[] = [
     icon: <Edit className="w-5 h-5" />,
     roles: ["SECURITY"]
   },
-   {
-    name: " Profile",
+  {
+    name: "Profile",
     href: "/security/profile",
-    icon: <User2Icon className="w-5 h-5" />,
+    icon: <User className="w-5 h-5" />,
     roles: ["SECURITY"]
   },
   {
@@ -148,10 +147,10 @@ const navigation: NavigationItem[] = [
     icon: <Plus className="w-5 h-5" />,
     roles: ["STUDENT"]
   },
-   {
+  {
     name: "Profile",
     href: "/student/profile",
-    icon: <User2Icon className="w-5 h-5" />,
+    icon: <User className="w-5 h-5" />,
     roles: ["STUDENT"]
   }
 ]
@@ -175,10 +174,12 @@ const getRoleVariant = (role: string): "default" | "secondary" | "destructive" |
 function NavItem({ 
   item, 
   isActive, 
+  isCollapsed,
   onClick 
 }: { 
   item: NavigationItem
   isActive: boolean
+  isCollapsed: boolean
   onClick?: () => void 
 }) {
   return (
@@ -186,14 +187,33 @@ function NavItem({
       href={item.href}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent",
-        isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-primary"
+        "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+        isActive 
+          ? "bg-black text-white shadow-lg" 
+          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md",
+        isCollapsed && "justify-center"
       )}
     >
-      {item.icon}
-      <span>{item.name}</span>
-      {isActive && (
-        <ChevronRight className="ml-auto h-4 w-4" />
+      <div className={cn(
+        "transition-transform duration-200",
+        isActive && "scale-110"
+      )}>
+        {item.icon}
+      </div>
+      {!isCollapsed && (
+        <>
+          <span className="flex-1">{item.name}</span>
+          {isActive && (
+            <ChevronRight className="h-4 w-4 animate-pulse" />
+          )}
+        </>
+      )}
+      {isCollapsed && (
+        <div className="absolute left-full ml-2 hidden group-hover:block z-50">
+          <div className="bg-gray-900 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-xl border border-gray-700">
+            {item.name}
+          </div>
+        </div>
       )}
     </Link>
   )
@@ -208,6 +228,7 @@ export default function DashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   useEffect(() => {
     if (status === "loading") return
@@ -218,7 +239,7 @@ export default function DashboardLayout({
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
           <p className="mt-4 text-muted-foreground">Loading...</p>
@@ -245,78 +266,143 @@ export default function DashboardLayout({
     return pathname.startsWith(href)
   }
 
-  const SidebarContent = () => (
-    <>
-      <div className="flex h-16 items-center gap-2 px-6 lg:h-[60px]">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <div className="flex h-full flex-col">
+      <div className={cn(
+        "flex items-center gap-3 px-4 py-5",
+        isCollapsed && !isMobile && "justify-center px-2"
+      )}>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-white shadow-lg">
           <span className="text-sm font-bold">HM</span>
         </div>
-        <span className="font-semibold">Hostel Management</span>
+        {(!isCollapsed || isMobile) && (
+          <span className="font-semibold text-gray-800 text-lg">Hostel Mgmt</span>
+        )}
       </div>
       
-      <Separator />
+      <div className="h-px bg-gray-200 mx-3" />
       
       <ScrollArea className="flex-1 px-3">
-        <div className="space-y-1 py-4">
+        <div className="space-y-1.5 py-4">
           {filteredNavigation.map((item) => (
             <NavItem
               key={item.href}
               item={item}
               isActive={isCurrentPath(item.href)}
+              isCollapsed={isCollapsed && !isMobile}
               onClick={() => setMobileOpen(false)}
             />
           ))}
         </div>
       </ScrollArea>
       
-      <Separator />
+      <div className="h-px bg-gray-200 mx-3" />
       
-      {/* <div className="p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <Avatar>
-            <AvatarFallback>{userInitial}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none truncate">{userEmail}</p>
-            <Badge variant={getRoleVariant(userRole)} className="text-xs">
-              {userRole.replace('_', ' ')}
-            </Badge>
+      <div className={cn(
+        "p-4 space-y-3",
+        isCollapsed && !isMobile && "px-2"
+      )}>
+        {(!isCollapsed || isMobile) ? (
+          <>
+            <div className="flex items-center gap-3">
+              <Avatar className="border-2 border-gray-300">
+                <AvatarFallback className="bg-indigo-100 text-indigo-700">
+                  {userInitial}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 space-y-1 min-w-0">
+                <p className="text-sm font-medium leading-none text-gray-800 truncate">
+                  {userEmail}
+                </p>
+                <Badge 
+                  variant={getRoleVariant(userRole)} 
+                  className="text-xs"
+                >
+                  {userRole.replace('_', ' ')}
+                </Badge>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start border-gray-300 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+              onClick={() => signOut()}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </Button>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+            <Avatar className="border-2 border-gray-300 h-10 w-10">
+              <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm">
+                {userInitial}
+              </AvatarFallback>
+            </Avatar>
+            <Button 
+              variant="outline" 
+              size="icon"
+              className="border-gray-300 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+              onClick={() => signOut()}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
-        <Button 
-          variant="outline" 
-          className="w-full justify-start text-destructive hover:text-destructive"
-          onClick={() => signOut()}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign out
-        </Button>
-      </div> */}
-    </>
+        )}
+      </div>
+    </div>
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Mobile Sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 p-0">
-          <SidebarContent />
+        <SheetContent 
+          side="left" 
+          className="w-72 p-0 bg-white/95 backdrop-blur-xl border-r border-gray-200"
+        >
+          <SidebarContent isMobile />
         </SheetContent>
       </Sheet>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col lg:border-r">
+      {/* Desktop Glassmorphism Sidebar */}
+      <aside className={cn(
+        "hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300 z-40",
+        "bg-white/95 backdrop-blur-2xl border-r border-gray-200 shadow-xl",
+        isCollapsed ? "lg:w-20" : "lg:w-72"
+      )}>
         <SidebarContent />
+        
+        {/* Collapse Toggle Button */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={cn(
+            "absolute -right-3 top-8 h-6 w-6 rounded-full",
+            "bg-white border-2 border-gray-300 shadow-lg",
+            "flex items-center justify-center",
+            "text-black hover:bg-indigo-50 transition-all duration-200",
+            "hover:scale-110 hover:shadow-xl hover:border-indigo-400"
+          )}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
       </aside>
 
       {/* Main Content */}
-      <div className="lg:pl-72">
+      <div className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "lg:pl-20" : "lg:pl-72"
+      )}>
         {/* Mobile Header */}
-        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 lg:hidden">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-4 lg:hidden shadow-sm">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setMobileOpen(true)}
+            className="hover:bg-indigo-50"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle menu</span>
@@ -324,32 +410,36 @@ export default function DashboardLayout({
           
           <div className="flex flex-1 items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg">
                 <span className="text-xs font-bold">HM</span>
               </div>
-              <span className="font-semibold">Hostel Management</span>
+              <span className="font-semibold  bg-clip-text text-transparent">
+                Hostel Management
+              </span>
             </div>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">{userInitial}</AvatarFallback>
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-indigo-50">
+                  <Avatar className="h-8 w-8 border-2 border-indigo-200">
+                    <AvatarFallback className="text-xs bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                      {userInitial}
+                    </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-xl border-gray-200/50">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userEmail}</p>
-                    <Badge variant={getRoleVariant(userRole)} className="text-xs mt-1">
+                    <Badge variant={getRoleVariant(userRole)} className="text-xs mt-1 w-fit">
                       {userRole.replace('_', ' ')}
                     </Badge>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  className="text-destructive focus:text-destructive"
+                  className="text-destructive focus:text-destructive cursor-pointer"
                   onClick={() => signOut()}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -361,8 +451,10 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="min-h-[calc(100vh-4rem)] lg:min-h-screen">
-          {children}
+        <main className="min-h-[calc(100vh-4rem)] lg:min-h-screen p-6">
+          <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 p-6 min-h-[calc(100vh-8rem)]">
+            {children}
+          </div>
         </main>
       </div>
     </div>
