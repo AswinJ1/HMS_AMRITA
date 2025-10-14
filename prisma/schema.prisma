@@ -58,6 +58,8 @@ model Admin {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  gender      String @default("male")
+  avatarUrl   String?
 }
 
 model Student {
@@ -90,6 +92,8 @@ model Staff {
   department String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  gender      String @default("male")
+  avatarUrl   String?
   
   // Relations
   approvals StaybackApproval[]
@@ -103,6 +107,8 @@ model Hostel {
   hostelName String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  gender      String @default("male")
+  avatarUrl   String?
   
   // Relations
   approvals StaybackApproval[]
@@ -116,6 +122,8 @@ model Security {
   department String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  gender      String @default("male")
+  avatarUrl   String?
 }
 
 model TeamLead {
@@ -127,6 +135,8 @@ model TeamLead {
   department String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  gender      String @default("male")
+  avatarUrl   String?
   
   // Relations
   approvals StaybackApproval[]

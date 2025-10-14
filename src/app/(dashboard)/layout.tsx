@@ -87,6 +87,13 @@ const navigation: NavigationItem[] = [
     icon: <FileText className="w-5 h-5" />,
     roles: ["ADMIN"]
   },
+   {
+    name: "Profile",
+    href: "/staff/profile",
+    icon: <FileText className="w-5 h-5" />,
+    roles: ["STAFF"]
+  },
+
   {
     name: "Approvals",
     href: "/hostel/approvals",
