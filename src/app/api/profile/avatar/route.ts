@@ -19,24 +19,80 @@ export async function PATCH(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: { student: true },
+      include: { 
+        student: true,
+        staff: true,
+        hostel: true,
+        teamLead: true,
+        security: true,
+        admin: true,
+      },
     })
 
-    if (!user?.student) {
-      return NextResponse.json({ error: "Student profile not found" }, { status: 404 })
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const updatedStudent = await prisma.student.update({
-      where: {
-        userId: user.id,
-      },
-      data: {
-        avatarUrl,
-        ...(gender && { gender }),
-      },
-    })
+    let updatedProfile: any = null
 
-    return NextResponse.json({ success: true, avatarUrl: updatedStudent.avatarUrl, gender: updatedStudent.gender })
+    // Update based on user role
+    if (user.student) {
+      updatedProfile = await prisma.student.update({
+        where: { userId: user.id },
+        data: {
+          avatarUrl,
+          ...(gender && { gender }),
+        },
+      })
+    } else if (user.staff) {
+      updatedProfile = await prisma.staff.update({
+        where: { userId: user.id },
+        data: {
+          avatarUrl,
+          ...(gender && { gender }),
+        },
+      })
+    } else if (user.hostel) {
+      updatedProfile = await prisma.hostel.update({
+        where: { userId: user.id },
+        data: {
+          avatarUrl,
+          ...(gender && { gender }),
+        },
+      })
+    } else if (user.teamLead) {
+      updatedProfile = await prisma.teamLead.update({
+        where: { userId: user.id },
+        data: {
+          avatarUrl,
+          ...(gender && { gender }),
+        },
+      })
+    } else if (user.security) {
+      updatedProfile = await prisma.security.update({
+        where: { userId: user.id },
+        data: {
+          avatarUrl,
+          ...(gender && { gender }),
+        },
+      })
+    } else if (user.admin) {
+      updatedProfile = await prisma.admin.update({
+        where: { userId: user.id },
+        data: {
+          avatarUrl,
+          ...(gender && { gender }),
+        },
+      })
+    } else {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      avatarUrl: updatedProfile?.avatarUrl || avatarUrl, 
+      gender: updatedProfile?.gender || gender 
+    })
   } catch (error) {
     console.error("Error updating avatar:", error)
     return NextResponse.json(
