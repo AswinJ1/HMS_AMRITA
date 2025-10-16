@@ -547,9 +547,9 @@ const HostelApprovalsPage = () => {
                       <TableHead>Student</TableHead>
                       <TableHead>Room</TableHead>
                       <TableHead>Date & Time</TableHead>
+                      <TableHead>Security Status</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Decision Date</TableHead>
-                      <TableHead>Comments</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -571,17 +571,56 @@ const HostelApprovalsPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
+                          {/* Security Status */}
+                          {(() => {
+                            // Extract all security updates from all approvals
+                            const allSecurityUpdates: Array<{status: string, name: string, comment?: string}> = []
+                            
+                            approval.request.approvals?.forEach((teamApproval) => {
+                              if (teamApproval.comments && teamApproval.comments.includes('[SECURITY UPDATE]')) {
+                                const lines = teamApproval.comments.split('\n')
+                                lines.forEach(line => {
+                                  if (line.includes('[SECURITY UPDATE]')) {
+                                    const match = line.match(/\[SECURITY UPDATE\] Student marked as (IN|OUT) by Security: ([^-]+)(?:-(.+))?/)
+                                    if (match) {
+                                      const [, status, securityName, additionalComment] = match
+                                      allSecurityUpdates.push({
+                                        status,
+                                        name: securityName.trim(),
+                                        comment: additionalComment?.trim()
+                                      })
+                                    }
+                                  }
+                                })
+                              }
+                            })
+                            
+                            // Get the latest security update (last one in the array)
+                            const latestUpdate = allSecurityUpdates[allSecurityUpdates.length - 1]
+                            
+                            if (latestUpdate) {
+                              const displayStatus = latestUpdate.status === 'IN' ? 'Present' : 'Absent'
+                              return (
+                                <div className="inline-flex items-center gap-2">
+                                  <Badge variant={latestUpdate.status === 'IN' ? 'default' : 'destructive'} className={`text-xs ${
+                                    latestUpdate.status === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {displayStatus}
+                                  </Badge>
+                                </div>
+                              )
+                            } else {
+                              return <span className="text-gray-400 text-sm">-</span>
+                            }
+                          })()}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={getStatusBadgeVariant(approval.status)}>
                             {approval.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {approval.approvedAt ? formatDate(approval.approvedAt) : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm max-w-xs truncate">
-                            {approval.comments || "-"}
-                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

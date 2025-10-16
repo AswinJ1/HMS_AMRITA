@@ -404,13 +404,13 @@ const StaffApprovalsPage = () => {
                       Team Lead Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Security Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Decision Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Comments
                     </th>
                   </tr>
                 </thead>
@@ -435,18 +435,77 @@ const StaffApprovalsPage = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="space-y-1">
-                          {approval.request.approvals && approval.request.approvals.length > 0 &&
-  approval.request.approvals
-    .filter((teamApproval) => teamApproval.teamLead && teamApproval.comments)
-    .map((teamApproval) => (
-      <div key={teamApproval.id} className="mb-1">
-        <span className="font-medium text-xs text-orange-600">Team Lead:</span>
-        <p className="text-xs truncate">"{teamApproval.comments}"</p>
-      </div>
-    ))
-}
+                          {approval.request.approvals && approval.request.approvals.length > 0 ? (
+                            approval.request.approvals
+                              .filter((teamApproval) => teamApproval.teamLead && teamApproval.comments)
+                              .map((teamApproval) => {
+                                // Extract only non-security comments for team lead column
+                                let teamLeadComment = teamApproval.comments
+                                
+                                if (teamApproval.comments && teamApproval.comments.includes('[SECURITY UPDATE]')) {
+                                  const lines = teamApproval.comments.split('\n')
+                                  const nonSecurityLines = lines.filter(line => !line.includes('[SECURITY UPDATE]') && line.trim())
+                                  teamLeadComment = nonSecurityLines.join('\n') || undefined
+                                }
+                                
+                                return teamLeadComment ? (
+                                  <div key={teamApproval.id} className="mb-1">
+                                    <span className="font-medium text-xs text-orange-600">Team Lead:</span>
+                                    <p className="text-xs">"{teamLeadComment}"</p>
+                                  </div>
+                                ) : null
+                              })
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
                         </div>
                       </td>
+                      
+                      {/* Security Status Column - Show only latest status */}
+                      <td className="px-6 py-4">
+                        {(() => {
+                          // Extract all security updates from all approvals
+                          const allSecurityUpdates: Array<{status: string, name: string, comment?: string}> = []
+                          
+                          approval.request.approvals?.forEach((teamApproval) => {
+                            if (teamApproval.comments && teamApproval.comments.includes('[SECURITY UPDATE]')) {
+                              const lines = teamApproval.comments.split('\n')
+                              lines.forEach(line => {
+                                if (line.includes('[SECURITY UPDATE]')) {
+                                  const match = line.match(/\[SECURITY UPDATE\] Student marked as (IN|OUT) by Security: ([^-]+)(?:-(.+))?/)
+                                  if (match) {
+                                    const [, status, securityName, additionalComment] = match
+                                    allSecurityUpdates.push({
+                                      status,
+                                      name: securityName.trim(),
+                                      comment: additionalComment?.trim()
+                                    })
+                                  }
+                                }
+                              })
+                            }
+                          })
+                          
+                          // Get the latest security update (last one in the array)
+                          const latestUpdate = allSecurityUpdates[allSecurityUpdates.length - 1]
+                          
+                          if (latestUpdate) {
+                            const displayStatus = latestUpdate.status === 'IN' ? 'Present' : 'Absent'
+                            return (
+                              <div className="inline-flex items-center gap-2">
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                  latestUpdate.status === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {displayStatus}
+                                </span>
+                              </div>
+                            )
+                          }
+                          
+                          return <span className="text-xs text-gray-400">-</span>
+                        })()}
+                      </td>
+                      
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
@@ -458,31 +517,6 @@ const StaffApprovalsPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {approval.approvedAt ? formatDate(approval.approvedAt) : "-"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs">
-                          {approval.comments && (
-                            <div className="mb-2">
-                              <div className="mb-1">
-                                <span className="font-medium text-xs text-blue-600">Staff:</span>
-                                <p className="text-xs truncate">{approval.comments}</p>
-                              </div>
-                            </div>
-                          )}
-    {approval.request.approvals && approval.request.approvals.length > 0 &&
-      approval.request.approvals
-        .filter((teamApproval) => teamApproval.teamLead && teamApproval.comments)
-        .map((teamApproval) => (
-          <div key={teamApproval.id} className="mb-1">
-            <span className="font-medium text-xs text-orange-600">Team Lead:</span>
-            <p className="text-xs truncate">"{teamApproval.comments}"</p>
-          </div>
-        ))
-    }
-    {!approval.comments && (!approval.request.approvals || approval.request.approvals.length === 0 || !approval.request.approvals.some(ta => ta.teamLead && ta.comments)) && (
-      <span className="text-xs text-gray-400">No comments</span>
-    )}
-                        </div>
                       </td>
                     </tr>
                   ))}

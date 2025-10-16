@@ -364,10 +364,10 @@ const TeamLeadApprovalsPage = () => {
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Decision Date
+                      Security Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Comments
+                      Decision Date
                     </th>
                   </tr>
                 </thead>
@@ -398,17 +398,45 @@ const TeamLeadApprovalsPage = () => {
                           {approval.status}
                         </span>
                       </td>
+                      
+                      {/* Security Status Column - Show only latest status */}
+                      <td className="px-6 py-4">
+                        {(() => {
+                          // Extract latest security update from comments
+                          if (approval.comments && approval.comments.includes('[SECURITY UPDATE]')) {
+                            const lines = approval.comments.split('\n')
+                            const securityUpdates: Array<{status: string}> = []
+                            
+                            lines.forEach(line => {
+                              if (line.includes('[SECURITY UPDATE]')) {
+                                const match = line.match(/\[SECURITY UPDATE\] Student marked as (IN|OUT)/)
+                                if (match) {
+                                  securityUpdates.push({ status: match[1] })
+                                }
+                              }
+                            })
+                            
+                            // Get the latest security update
+                            const latestUpdate = securityUpdates[securityUpdates.length - 1]
+                            
+                            if (latestUpdate) {
+                              const displayStatus = latestUpdate.status === 'IN' ? 'Present' : 'Absent'
+                              return (
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                  latestUpdate.status === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {displayStatus}
+                                </span>
+                              )
+                            }
+                          }
+                          
+                          return <span className="text-xs text-gray-400">-</span>
+                        })()}
+                      </td>
+                      
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {approval.approvedAt ? formatDate(approval.approvedAt) : "-"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs">
-                          {approval.comments ? (
-                            <div className="truncate">{approval.comments}</div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   ))}
