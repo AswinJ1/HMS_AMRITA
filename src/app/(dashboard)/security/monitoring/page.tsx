@@ -353,7 +353,7 @@ export default function SecurityMonitoring() {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {request.student.name}
                           </h3>
-                          {getSecurityStatusBadge(request.securityStatus)}
+                          {/* {getSecurityStatusBadge(request.securityStatus)} */}
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
@@ -619,7 +619,7 @@ export default function SecurityMonitoring() {
                       {request.securityStatus === "OUT" && (
                         <div className="flex gap-2 items-center">
                           <Badge variant="secondary" className="bg-red-100 text-red-800 px-3 py-1">
-                            → Student has left the Hostel
+                            Student Absent
                           </Badge>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
