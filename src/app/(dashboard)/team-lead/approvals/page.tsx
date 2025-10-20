@@ -13,7 +13,7 @@ interface StaybackApproval {
   request: {
     id: string
     date: string
-    reason: string
+    remarks: string
     status: "PENDING" | "APPROVED" | "REJECTED"
     clubName: string
     createdAt: string
@@ -24,6 +24,17 @@ interface StaybackApproval {
       roomNo: string
       phoneNumber: string
     }
+
+     approvals: Array<{
+      id: string
+      status: "PENDING" | "APPROVED" | "REJECTED"
+      comments?: string
+      createdAt: string
+      teamLead?: {
+        name: string
+        clubName?: string
+      }
+    }>
   }
 }
 
@@ -300,9 +311,9 @@ const TeamLeadApprovalsPage = () => {
                       </div>
                       
                       <div className="mb-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Reason for Stayback:</p>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Reason:</p>
                         <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
-                          {approval.request.reason}
+                          {approval.request.remarks}
                         </p>
                       </div>
                     </div>

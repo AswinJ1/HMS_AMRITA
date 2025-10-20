@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     
     // Filter requests to only show those where all 3 main approvals are APPROVED
     const fullyApprovedRequests = allRequests.filter(request => {
-      // Get only valid approvals (exclude any orphaned approvals)
+      // Get only valid approvals
       const validApprovals = request.approvals.filter(
         approval => approval.staff || approval.hostel || approval.teamLead
       )
@@ -101,21 +101,20 @@ export async function GET(request: NextRequest) {
         approval => approval.staff || approval.hostel || approval.teamLead
       )
       
-      // Check if security has already tracked this request
-      const securityTracking = request.approvals.find(
-        approval => approval.comments?.startsWith('SECURITY_TRACKING:')
+      // ✅ Check security tracking from the dedicated fields (not comments)
+      // Get the first approval that has security tracking info
+      const trackedApproval = validApprovals.find(
+        approval => approval.securityStatus
       )
       
       let securityStatus = "PENDING"
-      let securityComments = null
-      let securityApprovedAt = null
+      let securityCheckedBy = null
+      let securityCheckedAt = null
       
-      if (securityTracking) {
-        // Extract IN/OUT status from security comments
-        const statusMatch = securityTracking.comments?.match(/SECURITY_TRACKING:\w+:[^-]+ - (IN|OUT)/)
-        securityStatus = statusMatch ? statusMatch[1] : securityTracking.status
-        securityComments = securityTracking.comments
-        securityApprovedAt = securityTracking.approvedAt
+      if (trackedApproval) {
+        securityStatus = trackedApproval.securityStatus || "PENDING"
+        securityCheckedBy = trackedApproval.securityCheckedBy
+        securityCheckedAt = trackedApproval.securityCheckedAt
       }
       
       return {
@@ -130,9 +129,15 @@ export async function GET(request: NextRequest) {
         createdAt: request.createdAt,
         updatedAt: request.updatedAt,
         securityStatus: securityStatus,
-        securityComments: securityComments,
-        securityApprovedAt: securityApprovedAt,
-        approvals: validApprovals, // Show all 3 approvals to security
+        securityCheckedBy: securityCheckedBy,
+        securityCheckedAt: securityCheckedAt,
+        approvals: validApprovals.map(approval => ({
+          ...approval,
+          // Remove security tracking info from approvals display
+          securityStatus: undefined,
+          securityCheckedBy: undefined,
+          securityCheckedAt: undefined,
+        })),
       }
     })
     
@@ -164,7 +169,7 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json()
-    const { requestId, status, comments } = body
+    const { requestId, status } = body
     
     // Validate status - only IN or OUT allowed
     if (!requestId || !status || !["IN", "OUT"].includes(status)) {
@@ -174,7 +179,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Get security user profile
     const security = await prisma.security.findUnique({
       where: { userId: session.user.id },
     })
@@ -219,101 +223,34 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Check if security tracking already exists
-    const existingSecurityTracking = staybackRequest.approvals.find(
-      approval => approval.comments?.startsWith('SECURITY_TRACKING:')
+    // ✅ Update ONLY security tracking fields for ALL approvals
+    const updatePromises = validApprovals.map(approval =>
+      prisma.staybackApproval.update({
+        where: { id: approval.id },
+        data: {
+          securityStatus: status,
+          securityCheckedBy: security.name,
+          securityCheckedAt: new Date(),
+        }
+      })
     )
     
-    let securityApproval
+    await Promise.all(updatePromises)
     
-    if (existingSecurityTracking) {
-      // Update existing security tracking
-      securityApproval = await prisma.staybackApproval.update({
-        where: { id: existingSecurityTracking.id },
-        data: {
-          status: "APPROVED",
-          comments: comments ? 
-            `SECURITY_TRACKING:${security.id}:${security.name} - ${status}: ${comments}` : 
-            `SECURITY_TRACKING:${security.id}:${security.name} - ${status}`,
-          approvedAt: new Date()
-        }
-      })
-    } else {
-      // Create new security tracking approval
-      securityApproval = await prisma.staybackApproval.create({
-        data: {
-          requestId: requestId,
-          status: "APPROVED",
-          comments: comments ? 
-            `SECURITY_TRACKING:${security.id}:${security.name} - ${status}: ${comments}` : 
-            `SECURITY_TRACKING:${security.id}:${security.name} - ${status}`,
-          approvedAt: new Date()
-        }
-      })
-    }
-    
-    // Update the stayback request status to indicate security has tracked it
+    // Update the stayback request status
     await prisma.staybackRequest.update({
       where: { id: requestId },
       data: {
-        status: "APPROVED",
+        status: status === "OUT" ? "APPROVED" : "APPROVED",
         updatedAt: new Date()
       }
     })
     
-    // Notify Team Lead and Staff about the security update
-    try {
-      const notificationPromises = []
-      
-      // Notify Staff
-      const staffApprovals = validApprovals.filter(a => a.staffId)
-      for (const staffApproval of staffApprovals) {
-        notificationPromises.push(
-          prisma.staybackApproval.update({
-            where: { id: staffApproval.id },
-            data: {
-              comments: `${staffApproval.comments || ''}\n[SECURITY UPDATE] Student marked as ${status} by Security: ${security.name} at ${new Date().toLocaleString()}${comments ? ` - ${comments}` : ''}`
-            }
-          })
-        )
-      }
-      
-      // Notify Team Lead
-      const teamLeadApprovals = validApprovals.filter(a => a.teamLeadId)
-      for (const teamLeadApproval of teamLeadApprovals) {
-        notificationPromises.push(
-          prisma.staybackApproval.update({
-            where: { id: teamLeadApproval.id },
-            data: {
-              comments: `${teamLeadApproval.comments || ''}\n[SECURITY UPDATE] Student marked as ${status} by Security: ${security.name} at ${new Date().toLocaleString()}${comments ? ` - ${comments}` : ''}`
-            }
-          })
-        )
-      }
-      
-      // Notify Hostel
-      const hostelApprovals = validApprovals.filter(a => a.hostelId)
-      for (const hostelApproval of hostelApprovals) {
-        notificationPromises.push(
-          prisma.staybackApproval.update({
-            where: { id: hostelApproval.id },
-            data: {
-              comments: `${hostelApproval.comments || ''}\n[SECURITY UPDATE] Student marked as ${status} by Security: ${security.name} at ${new Date().toLocaleString()}${comments ? ` - ${comments}` : ''}`
-            }
-          })
-        )
-      }
-      
-      await Promise.all(notificationPromises)
-    } catch (notificationError) {
-      console.error("Error sending notifications:", notificationError)
-    }
-    
     return NextResponse.json({
       message: `Student marked as ${status} successfully`,
-      approval: securityApproval,
-      requestStatus: status === "OUT" ? "COMPLETED" : "APPROVED",
-      notified: "Staff, Team Lead, and Hostel have been notified"
+      securityStatus: status,
+      securityCheckedBy: security.name,
+      securityCheckedAt: new Date().toISOString()
     })
   } catch (error) {
     console.error("Error updating security tracking:", error)
