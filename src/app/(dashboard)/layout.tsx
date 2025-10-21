@@ -19,11 +19,12 @@ import {
   Eye,
   Edit,
   User,
-  ChevronLeft
+  ChevronLeft,
+  User2Icon
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -90,7 +91,7 @@ const navigation: NavigationItem[] = [
    {
     name: "Profile",
     href: "/staff/profile",
-    icon: <FileText className="w-5 h-5" />,
+    icon: <User2Icon className="w-5 h-5" />,
     roles: ["STAFF"]
   },
 
@@ -159,6 +160,24 @@ const navigation: NavigationItem[] = [
     href: "/student/profile",
     icon: <User className="w-5 h-5" />,
     roles: ["STUDENT"]
+  },
+   {
+    name: "Profile",
+    href: "/team-lead/profile",
+    icon: <User className="w-5 h-5" />,
+    roles: ["TEAM_LEAD"]
+  },
+   {
+    name: "Profile",
+    href: "/hostel/profile",
+    icon: <User className="w-5 h-5" />,
+    roles: ["HOSTEL"]
+  },
+   {
+    name: "Profile",
+    href: "/admin/profile",
+    icon: <User className="w-5 h-5" />,
+    roles: ["ADMIN"]
   }
 ]
 
@@ -236,6 +255,7 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
 
   useEffect(() => {
     if (status === "loading") return
@@ -243,6 +263,25 @@ export default function DashboardLayout({
       router.push("/login")
     }
   }, [session, status, router])
+
+  // Fetch user profile with avatar
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch("/api/profile")
+        if (response.ok) {
+          const data = await response.json()
+          setProfile(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile:", error)
+      }
+    }
+
+    if (session) {
+      fetchProfile()
+    }
+  }, [session])
 
   if (status === "loading") {
     return (
@@ -261,6 +300,57 @@ export default function DashboardLayout({
   const userEmail = session.user.email || ""
   const userInitial = userEmail.charAt(0).toUpperCase()
   
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const getAvatarUrl = () => {
+    if (!profile) return null
+    
+    switch (userRole) {
+      case "ADMIN":
+        return profile.admin?.avatarUrl
+      case "STAFF":
+        return profile.staff?.avatarUrl
+      case "STUDENT":
+        return profile.student?.avatarUrl
+      case "TEAM_LEAD":
+        return profile.teamLead?.avatarUrl
+      case "HOSTEL":
+        return profile.hostel?.avatarUrl
+      case "SECURITY":
+        return profile.security?.avatarUrl
+      default:
+        return null
+    }
+  }
+
+  const getUserName = () => {
+    if (!profile) return userEmail
+    
+    switch (userRole) {
+      case "ADMIN":
+        return profile.admin?.name
+      case "STAFF":
+        return profile.staff?.name
+      case "STUDENT":
+        return profile.student?.name
+      case "TEAM_LEAD":
+        return profile.teamLead?.name
+      case "HOSTEL":
+        return profile.hostel?.name
+      case "SECURITY":
+        return profile.security?.name
+      default:
+        return userEmail
+    }
+  }
+
   const filteredNavigation = navigation.filter(item => 
     item.roles.includes(userRole)
   )
@@ -311,49 +401,87 @@ export default function DashboardLayout({
       )}>
         {(!isCollapsed || isMobile) ? (
           <>
-            <div className="flex items-center gap-3">
-              <Avatar className="border-2 border-gray-300">
-                <AvatarFallback className="bg-indigo-100 text-indigo-700">
-                  {userInitial}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 space-y-1 min-w-0">
-                <p className="text-sm font-medium leading-none text-gray-800 truncate">
-                  {userEmail}
-                </p>
-                <Badge 
-                  variant={getRoleVariant(userRole)} 
-                  className="text-xs"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                  <Avatar className="h-12 w-12 ring-2 ring-blue-100 hover:ring-blue-300 transition-all border-2 border-white shadow-md">
+                    {getAvatarUrl() ? (
+                      <AvatarImage src={getAvatarUrl()!} alt={getUserName()} />
+                    ) : (
+                      <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white font-semibold">
+                        {profile ? getInitials(getUserName()) : userInitial}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div className="flex-1 space-y-1 min-w-0">
+                    <p className="text-sm font-medium leading-none text-gray-800 truncate">
+                      {getUserName()}
+                    </p>
+                    <Badge 
+                      variant={getRoleVariant(userRole)} 
+                      className="text-xs"
+                    >
+                      {userRole.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-xl border-gray-200/50">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{getUserName()}</p>
+                    <p className="text-xs text-gray-500">{userEmail}</p>
+                    <Badge variant={getRoleVariant(userRole)} className="text-xs mt-1 w-fit">
+                      {userRole.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="text-destructive focus:text-destructive cursor-pointer"
+                  onClick={() => signOut()}
                 >
-                  {userRole.replace('_', ' ')}
-                </Badge>
-              </div>
-            </div>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start border-gray-300 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-              onClick={() => signOut()}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
-            </Button>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-3">
-            <Avatar className="border-2 border-gray-300 h-10 w-10">
-              <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm">
-                {userInitial}
-              </AvatarFallback>
-            </Avatar>
-            <Button 
-              variant="outline" 
-              size="icon"
-              className="border-gray-300 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-              onClick={() => signOut()}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex flex-col items-center gap-3 cursor-pointer">
+                <Avatar className="h-12 w-12 ring-2 ring-blue-100 hover:ring-blue-300 transition-all border-2 border-white shadow-md">
+                  {getAvatarUrl() ? (
+                    <AvatarImage src={getAvatarUrl()!} alt={getUserName()} />
+                  ) : (
+                    <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white font-semibold text-sm">
+                      {profile ? getInitials(getUserName()) : userInitial}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-xl border-gray-200/50">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{getUserName()}</p>
+                  <p className="text-xs text-gray-500">{userEmail}</p>
+                  <Badge variant={getRoleVariant(userRole)} className="text-xs mt-1 w-fit">
+                    {userRole.replace('_', ' ')}
+                  </Badge>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive cursor-pointer"
+                onClick={() => signOut()}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </div>

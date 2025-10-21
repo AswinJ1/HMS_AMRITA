@@ -18,6 +18,8 @@ import {
   Edit,
   IdCard
 } from "lucide-react"
+import { AvatarSelector } from "@/components/avatar-selector"
+
 
 interface SecurityProfile {
   id: string
@@ -30,6 +32,8 @@ interface SecurityProfile {
     name: string
     department: string
     createdAt: string
+    gender: "male" | "female"
+    avatarUrl?: string
   }
 }
 
@@ -84,6 +88,27 @@ export default function SecurityProfilePage() {
       .toUpperCase()
       .slice(0, 2)
   }
+   const handleAvatarSave = async (avatarUrl: string) => {
+    try {
+      const response = await fetch("/api/profile/avatar", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ avatarUrl }),
+      })
+
+      if (response.ok) {
+        // Refresh profile data
+        await fetchProfile()
+      } else {
+        throw new Error("Failed to update avatar")
+      }
+    } catch (error) {
+      console.error("Error updating avatar:", error)
+      throw error
+    }
+  }
 
   if (isLoading) {
     return (
@@ -131,15 +156,16 @@ export default function SecurityProfilePage() {
           <Card className="md:col-span-1">
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center">
-                <Avatar className="h-24 w-24 mb-4">
-                  <AvatarFallback className="bg-blue-600 text-white text-2xl">
-                    {getInitials(profile.security.name)}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                  {profile.security.name}
-                </h2>
+                  <AvatarSelector
+                                  currentAvatar={profile.security.avatarUrl}
+                                  gender={profile.security.gender}
+                                  onSave={handleAvatarSave}
+                                  fallbackInitials={getInitials(profile.security.name)}
+                                  />
+                                
+                                <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                                  {profile.security.name}
+                                </h2>
                 
                 <Badge variant="secondary" className="mb-4">
                   <Shield className="h-3 w-3 mr-1" />
