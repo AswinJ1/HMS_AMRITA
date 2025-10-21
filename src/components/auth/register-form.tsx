@@ -35,6 +35,7 @@ export function RegisterForm() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [selectedClub, setSelectedClub] = useState("")
+
   
  const {
   register,
@@ -88,16 +89,26 @@ export function RegisterForm() {
     }
   }
 
+// const handleClubSelect = (value: string) => {
+//   const club = clubs.find(c => c.id === value)
+//   if (club) {
+//     setSelectedClub(club.name)
+//     setValue("clubName", club.name, { shouldValidate: true })
+//   } else { 
+//     setSelectedClub("")
+//     setValue("clubName", "", { shouldValidate: true })
+//   }
+// }
 const handleClubSelect = (value: string) => {
-  const club = clubs.find(c => c.id === value)
+  // value is the club.id now!
+  setSelectedClub(value);
+  const club = clubs.find(c => c.id === value);
   if (club) {
-    setSelectedClub(club.name)
-    setValue("clubName", club.name, { shouldValidate: true })
-  } else { 
-    setSelectedClub("")
-    setValue("clubName", "", { shouldValidate: true })
+    setValue("clubName", club.name, { shouldValidate: true });
+  } else {
+    setValue("clubName", "", { shouldValidate: true });
   }
-}
+};
 
 
   return (
@@ -265,11 +276,14 @@ const handleClubSelect = (value: string) => {
                     <AccordionTrigger className="text-black hover:text-black px-4">
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        <span>{selectedClub || "Select your club"}</span>
+                        <span>
+  {selectedClub ? clubs.find(c => c.id === selectedClub)?.name : "Select your club"}
+</span>
+
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 pb-4">
-                      <RadioGroup value={selectedClub} onValueChange={handleClubSelect}>
+                      {/* <RadioGroup value={selectedClub} onValueChange={handleClubSelect}>
                         <div className="space-y-3">
                           {clubs.map((club) => (
                             <div key={club.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-200 transition-colors">
@@ -288,7 +302,23 @@ const handleClubSelect = (value: string) => {
                             </div>
                           ))}
                         </div>
-                      </RadioGroup>
+                      </RadioGroup> */}
+                      <RadioGroup value={selectedClub} onValueChange={handleClubSelect}>
+                      {clubs.map((club) => (
+                        <div key={club.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-200 transition-colors">
+                          <RadioGroupItem
+                            value={club.id}
+                            id={club.id}
+                            className="mt-1 border-gray-500 text-black"
+                          />
+                          <Label htmlFor={club.id} className="flex-1 cursor-pointer">
+                            <div className="text-black font-medium">{club.name}</div>
+                            <div className="text-gray-400 text-sm">{club.description}</div>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
