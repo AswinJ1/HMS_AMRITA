@@ -5,7 +5,6 @@ import { signOut } from "next-auth/react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-
 // Import shadcn/ui components - make sure these are installed first
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,7 +24,9 @@ import {
   AlertTriangle, 
   BarChart3,
   RefreshCw,
-  Shield
+  Shield,
+  ArrowLeft,
+  ArrowRight
 } from "lucide-react"
 
 interface StaffStats {
@@ -311,12 +312,12 @@ export default function StaffDashboard() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="w-6 h-6 text-blue-600" />
+                <div className="p-2  rounded-lg">
+                  <FileText className="w-6 h-6 " />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Requests</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalApprovals}</p>
+                  <p className="text-sm font-medium ">Total Requests</p>
+                  <p className="text-2xl font-bold ">{stats.totalApprovals}</p>
                 </div>
               </div>
             </CardContent>
@@ -325,26 +326,12 @@ export default function StaffDashboard() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Clock className="w-6 h-6 text-yellow-600" />
+                <div className="p-2  rounded-lg">
+                  <Clock className="w-6 h-6 " />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Pending Review</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.pendingApprovals}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Users className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Students</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.totalStudents}</p>
+                <div className="ml-4">  
+                  <p className="text-sm font-medium ">Pending Review</p>
+                  <p className="text-2xl font-bold ">{stats.pendingApprovals}</p>
                 </div>
               </div>
             </CardContent>
@@ -353,12 +340,26 @@ export default function StaffDashboard() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Star className="w-6 h-6 text-orange-600" />
+                <div className="p-2  rounded-lg">
+                  <Users className="w-6 h-6 " />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Team Leads</p>
-                  <p className="text-2xl font-bold text-orange-600">{stats.totalTeamLeads}</p>
+                  <p className="text-sm font-medium ">Total Students</p>
+                  <p className="text-2xl font-bold ">{stats.totalStudents}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2  rounded-lg">
+                  <Star className="w-6 h-6" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium ">Team Leads</p>
+                  <p className="text-2xl font-bold ">{stats.totalTeamLeads}</p>
                 </div>
               </div>
             </CardContent>
@@ -373,16 +374,16 @@ export default function StaffDashboard() {
               <Card className="hover:shadow-lg border-gray-200 hover:border-blue-300 h-full">
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                      <CheckCircle className="w-6 h-6 text-blue-600" />
+                    <div className="p-3 ">
+                      <CheckCircle className="w-6 h-6 " />
                     </div>
                     <div className="ml-4 flex-1">
-                      <h4 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h4 className="text-lg font-semibold  group-hover:text-gray-600 transition-colors">
                         Review Approvals
                       </h4>
                       <p className="text-gray-600 text-sm">Process stayback requests</p>
                       {stats.pendingApprovals > 0 && (
-                        <Badge variant="secondary" className="mt-2 bg-orange-100 text-orange-600 hover:bg-orange-200">
+                        <Badge variant="secondary" className="mt-2  hover:bg-gray-100">
                           {stats.pendingApprovals} pending
                         </Badge>
                       )}
@@ -396,11 +397,11 @@ export default function StaffDashboard() {
               <Card className="hover:shadow-lg border-gray-200 hover:border-orange-300 h-full">
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <div className="p-3 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-                      <Users className="w-6 h-6 text-orange-600" />
+                    <div className="p-3  ">
+                      <Users className="w-6 h-6 " />
                     </div>
                     <div className="ml-4 flex-1">
-                      <h4 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
+                      <h4 className="text-lg font-semibold text-gray-900 group-hover:text-gray-600 transition-colors">
                         Manage Team Leads
                       </h4>
                       <p className="text-gray-600 text-sm">Promote students to team leads</p>
@@ -416,12 +417,12 @@ export default function StaffDashboard() {
             <Card className="border-gray-200">
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <div className="p-3 bg-gray-100 rounded-lg">
-                    <BarChart3 className="w-6 h-6 text-gray-600" />
+                  <div className="p-3 rounded-lg">
+                    <BarChart3 className="w-6 h-6 " />
                   </div>
                   <div className="ml-4 flex-1">
-                    <h4 className="text-lg font-semibold text-gray-900">View Reports</h4>
-                    <p className="text-gray-600 text-sm">Coming soon - Analytics and reports</p>
+                    <h4 className="text-lg font-semibold ">View Reports</h4>
+                    <p className=" text-sm">Coming soon - Analytics and reports</p>
                   </div>
                 </div>
               </CardContent>
@@ -438,21 +439,21 @@ export default function StaffDashboard() {
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600 mb-2">
+                  <div className="text-3xl font-bold  mb-2">
                     {stats.approvedToday}
                   </div>
-                  <div className="text-sm text-gray-600">Approved</div>
+                  <div className="text-sm ">Approved</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-red-600 mb-2">
+                  <div className="text-3xl font-bold  mb-2">
                     {stats.rejectedToday}
                   </div>
-                  <div className="text-sm text-gray-600">Rejected</div>
+                  <div className="text-sm ">Rejected</div>
                 </div>
               </div>
               
               <div className="mt-4 text-center">
-                <div className="text-lg font-medium text-gray-900">
+                <div className="text-lg font-medium ">
                   {stats.approvedToday > 0 || stats.rejectedToday > 0 ? 
                     Math.round((stats.approvedToday / (stats.approvedToday + stats.rejectedToday)) * 100) 
                     : 0}% Approval Rate
@@ -468,21 +469,21 @@ export default function StaffDashboard() {
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                  <div className="text-3xl font-bold  mb-2">
                     {stats.totalStudents}
                   </div>
-                  <div className="text-sm text-gray-600">Students</div>
+                  <div className="text-sm ">Students</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600 mb-2">
+                  <div className="text-3xl font-bold  mb-2">
                     {stats.totalTeamLeads}
                   </div>
-                  <div className="text-sm text-gray-600">Team Leads</div>
+                  <div className="text-sm ">Team Leads</div>
                 </div>
               </div>
               
               <div className="mt-4 text-center">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm ">
                   {stats.totalStudents - stats.totalTeamLeads} students available for promotion
                 </div>
               </div>
@@ -495,11 +496,9 @@ export default function StaffDashboard() {
           <Card>
             <CardHeader className="pb-4">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                </div>
+               
                 <div>
-                  <CardTitle className="text-lg text-red-700">Security Alerts</CardTitle>
+                  <CardTitle className="text-lg text-black">Security Alerts</CardTitle>
                   <CardDescription>Recent IN/OUT status updates from Security</CardDescription>
                 </div>
               </div>
@@ -507,14 +506,14 @@ export default function StaffDashboard() {
             <CardContent>
               {requests.length > 0 ? (
                 <div className="space-y-3">
-                  {requests.map((request, id) => (
+                  {requests.slice(0,2).map((request, id) => (
                     <div key={`${request.id}-${id}`} className={`p-3 rounded-lg border-l-4 ${
-                      request.securityStatus === 'IN' ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'
+                      request.securityStatus === 'IN' ? ' border' : ' border'
                     }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            request.securityStatus === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            request.securityStatus === 'IN' ? 'bg-gray-100 text-black' : 'bg-gray-100 text-black'
                           }`}>
                             {request.securityStatus === 'IN' ? 'Present' : 'Absent'}
                           </span>
@@ -523,7 +522,7 @@ export default function StaffDashboard() {
                               {request.student.name}
                             </p>
                             <p className="text-xs text-gray-600">
-                              is {request.securityStatus === 'IN' ? 'present' : 'absent'}
+                              is {request.securityStatus === 'IN' ? 'present' : 'absent'} <br />
                               at {request.securityApprovedAt ? new Date(request.securityApprovedAt).toLocaleString() : 'Unknown time'}
                             </p>
                           </div>
@@ -531,18 +530,24 @@ export default function StaffDashboard() {
                        
                       </div>
                     </div>
+                    
                   ))}
+                 <div> <span>Showing First {requests.length} Security Status</span> </div>
+
                   <div className="pt-2 border-t border-gray-200">
-                    <Link href="/staff/approvals" className="text-sm text-blue-600 hover:text-blue-800 transition-colors">
-                      View all approvals with security updates →
-                    </Link>
+                  
+                       <Link href="/staff/approvals">
+            <Button variant="outline" className="flex items-center gap-2">
+              <ArrowRight className="h-4 w-4" />
+              Go to Approvals Page
+            </Button>
+          </Link>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-500">
-                  <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm">No recent security alerts</p>
-                  <p className="text-xs text-gray-400 mt-1">Security IN/OUT updates will appear here</p>
+                  <p className="text-sm">No recent security Status</p>
+                  <p className="text-xs text-gray-400 mt-1">Security Present/Absent updates will appear here</p>
                 </div>
               )}
             </CardContent>

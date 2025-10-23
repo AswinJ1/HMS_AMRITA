@@ -45,6 +45,31 @@ interface StaybackApproval {
     }>
   }
 }
+interface StaybackRequest {
+  id: string
+  student: {
+    id: string
+    name: string
+    clubName: string
+    hostelName: string
+    roomNo: string
+    user: {
+      email: string
+      uid: string
+    }
+  }
+  clubName: string
+  date: string
+  fromTime: string
+  toTime: string
+  remarks: string
+  status: string
+  createdAt: string
+  securityStatus: string
+  securityComments: string | null
+  securityApprovedAt: string | null
+  securityCheckedBy: string | null
+}
 
 const StaffApprovalsPage = () => {
   const { data: session } = useSession()
@@ -57,6 +82,8 @@ const StaffApprovalsPage = () => {
   const [comments, setComments] = useState("")
   const [showModal, setShowModal] = useState(false)
   const [actionType, setActionType] = useState<"APPROVED" | "REJECTED" | null>(null)
+  const [req, setReq] = useState<StaybackRequest[]>([])
+  
 
   useEffect(() => {
     if (session?.user?.role !== "STAFF") {
@@ -64,6 +91,7 @@ const StaffApprovalsPage = () => {
       return
     }
     fetchApprovals()
+    fetchRequests()
   }, [session, router])
 
   const fetchApprovals = async () => {
@@ -97,6 +125,27 @@ const StaffApprovalsPage = () => {
       setIsLoading(false)
     }
   }
+    const fetchRequests = async () => {
+  setIsLoading(true)
+  setError(null)
+  
+  try {
+    // Change from /api/security to /api/staff/security-alerts
+    const response = await fetch("/api/security-alerts")
+    
+    if (response.ok) {
+      const data = await response.json()
+      setReq(data.requests || [])
+    } else {
+      setError("Failed to fetch security alerts")
+    }
+  } catch (error) {
+    console.error("Error fetching requests:", error)
+    setError("Error loading security alerts")
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   const handleApprovalAction = (approval: StaybackApproval, action: "APPROVED" | "REJECTED") => {
     setSelectedApproval(approval)
@@ -412,6 +461,9 @@ const StaffApprovalsPage = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Comments
                     </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Security Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -484,6 +536,33 @@ const StaffApprovalsPage = () => {
     )}
                         </div>
                       </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+  <div className="text-gray-500">
+    {(() => {
+      // Find matching security data for this approval
+      const matchingReq = req.find(r => r.id === approval.request.id)
+      if (matchingReq) {
+        return (
+          <div className={`p-2 rounded-lg border-l-4 ${
+            matchingReq.securityStatus === 'IN' ? ' border-blue-600' : ' border-red-400'
+          }`}>
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+              matchingReq.securityStatus === 'IN' ? 'bg-gray-100 text-black' : 'bg-gray-100 text-black'
+            }`}>
+              {matchingReq.securityStatus === 'IN' ? 'Present' : 'Absent'}
+            </span>
+            {matchingReq.securityCheckedBy && (
+              <div className="text-xs text-gray-600 mt-1">
+                By: {matchingReq.securityCheckedBy}
+              </div>
+            )}
+          </div>
+        )
+      }
+      return <span className="text-xs text-gray-400">No security update</span>
+    })()}
+  </div>
+</td>
                     </tr>
                   ))}
                 </tbody>
