@@ -1,12 +1,157 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql" // You can change this to mysql, sqlite, etc.
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  uid       String?   @unique
+  password  String
+  role      Role
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  admin     Admin?
+  hostel    Hostel?
+  security  Security?
+  staff     Staff?
+  student   Student?
+  teamLead  TeamLead?
+
+  @@index([email])
+  @@index([uid])
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  avatarUrl String?
+  gender    String   @default("male")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Student {
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  name             String
+  clubName         String
+  hostelName       String
+  roomNo           String
+  phoneNumber      String
+  isTeamLead       Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  avatarUrl        String?
+  gender           String            @default("male")
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  staybackRequests StaybackRequest[]
+
+  @@index([clubName])
+  @@index([hostelName])
+}
+
+model Staff {
+  id         String             @id @default(cuid())
+  userId     String             @unique
+  name       String
+  department String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  avatarUrl  String?
+  gender     String             @default("male")
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvals  StaybackApproval[]
+}
+
+model Hostel {
+  id         String             @id @default(cuid())
+  userId     String             @unique
+  name       String
+  hostelName String
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  avatarUrl  String?
+  gender     String             @default("male")
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvals  StaybackApproval[]
+}
+
+model Security {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  name       String
+  department String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  avatarUrl  String?
+  gender     String   @default("male")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TeamLead {
+  id         String             @id @default(cuid())
+  userId     String             @unique
+  name       String
+  clubName   String
+  department String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  avatarUrl  String?
+  gender     String             @default("male")
+  approvals  StaybackApproval[]
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clubName])
+}
+
+model StaybackRequest {
+  id        String             @id @default(cuid())
+  studentId String
+  clubName  String
+  date      DateTime
+  fromTime  String
+  toTime    String
+  remarks   String
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  status    RequestStatus      @default(PENDING)
+  approvals StaybackApproval[]
+  student   Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("stayback_requests")
+}
+
+model StaybackApproval {
+  id                String          @id @default(cuid())
+  requestId         String
+  staffId           String?
+  hostelId          String?
+  teamLeadId        String?
+  status            ApprovalStatus  @default(PENDING)
+  comments          String?
+  approvedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  securityCheckedAt DateTime?
+  securityCheckedBy String?
+  securityStatus    String?
+  hostel            Hostel?         @relation(fields: [hostelId], references: [id])
+  request           StaybackRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  staff             Staff?          @relation(fields: [staffId], references: [id])
+  teamLead          TeamLead?       @relation(fields: [teamLeadId], references: [id])
+
+  @@unique([requestId, staffId])
+  @@unique([requestId, hostelId])
+  @@unique([requestId, teamLeadId])
+  @@index([requestId])
+  @@index([status])
 }
 
 enum Role {
@@ -28,168 +173,4 @@ enum ApprovalStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  uid           String?  @unique // For staff and hostel users
-  password      String
-  role          Role
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  student       Student?
-  staff         Staff?
-  hostel        Hostel?
-  teamLead      TeamLead?
-  admin         Admin?
-  security      Security?
-  
-  @@index([email])
-  @@index([uid])
-}
-
-model Admin {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  gender      String @default("male")
-  avatarUrl   String?
-}
-
-model Student {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  clubName    String
-  hostelName  String
-  roomNo      String
-  phoneNumber String
-  isTeamLead  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  gender      String @default("male")
-  avatarUrl   String?
-  
-  // Relations
-  staybackRequests StaybackRequest[]
-  
-  @@index([clubName])
-  @@index([hostelName])
-}
-
-model Staff {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  department String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  gender      String @default("male")
-  avatarUrl   String?
-  
-  // Relations
-  approvals StaybackApproval[]
-}
-
-model Hostel {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  hostelName String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  gender      String @default("male")
-  avatarUrl   String?
-  
-  // Relations
-  approvals StaybackApproval[]
-}
-
-model Security {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  department String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  gender      String @default("male")
-  avatarUrl   String?
-}
-
-model TeamLead {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  clubName   String
-  department String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  gender      String @default("male")
-  avatarUrl   String?
-  
-  // Relations
-  approvals StaybackApproval[]
-  
-  @@index([clubName])
-}
-
-model StaybackRequest {
-  id        String   @id @default(cuid())
-  studentId String
-  clubName  String
-  date      DateTime
-  fromTime  String   // Store as "HH:MM" format
-  toTime    String   // Store as "HH:MM" format
-  remarks   String
-  status    RequestStatus   @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  student   Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  approvals StaybackApproval[]
-
-  @@map("stayback_requests")
-}
-
-model StaybackApproval {
-  id         String         @id @default(cuid())
-  requestId  String
-  request    StaybackRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  
-  // Approver can be staff, hostel, or team lead
-  staffId    String?
-  staff      Staff?         @relation(fields: [staffId], references: [id])
-  
-  hostelId   String?
-  hostel     Hostel?        @relation(fields: [hostelId], references: [id])
-  
-  teamLeadId String?
-  teamLead   TeamLead?      @relation(fields: [teamLeadId], references: [id])
-  
-  status     ApprovalStatus @default(PENDING)
-  comments   String?
-  approvedAt DateTime?
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  
-  securityStatus     String?    // "IN" | "OUT" | null
-  securityCheckedBy  String?    // Name of security person
-  securityCheckedAt  DateTime?  // When checked
-  
-  @@unique([requestId, staffId])
-  @@unique([requestId, hostelId])
-  @@unique([requestId, teamLeadId])
-  @@index([requestId])
-  @@index([status])
 }

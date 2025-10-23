@@ -37,14 +37,7 @@ interface StaffStats {
   totalTeamLeads: number
 }
 
-interface SecurityAlert {
-  requestId: string
-  studentName: string
-  status: "IN" | "OUT"
-  securityName: string
-  timestamp: string
-  comments?: string
-}
+
 
 interface StaffProfile {
   id: string
@@ -62,6 +55,32 @@ interface StaffProfile {
   }
 }
 
+interface StaybackRequest {
+  id: string
+  student: {
+    id: string
+    name: string
+    clubName: string
+    hostelName: string
+    roomNo: string
+    user: {
+      email: string
+      uid: string
+    }
+  }
+  clubName: string
+  date: string
+  fromTime: string
+  toTime: string
+  remarks: string
+  status: string
+  createdAt: string
+  securityStatus: string
+  securityComments: string | null
+  securityApprovedAt: string | null
+  securityCheckedBy: string | null
+}
+
 export default function StaffDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
@@ -73,10 +92,11 @@ export default function StaffDashboard() {
     totalStudents: 0,
     totalTeamLeads: 0,
   })
-  const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [profile, setProfile] = useState<StaffProfile | null>(null)
+   const [requests, setRequests] = useState<StaybackRequest[]>([])
+   const [comments, setComments] = useState("")
    useEffect(() => {
     fetchProfile()
   }, [])
@@ -94,6 +114,29 @@ export default function StaffDashboard() {
       setIsLoading(false)
     }
   }
+
+  const fetchRequests = async () => {
+  setIsLoading(true)
+  setError(null)
+  
+  try {
+    // Change from /api/security to /api/staff/security-alerts
+    const response = await fetch("/api/security-alerts")
+    
+    if (response.ok) {
+      const data = await response.json()
+      setRequests(data.requests || [])
+    } else {
+      setError("Failed to fetch security alerts")
+    }
+  } catch (error) {
+    console.error("Error fetching requests:", error)
+    setError("Error loading security alerts")
+  } finally {
+    setIsLoading(false)
+  }
+}
+
    const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -109,6 +152,7 @@ export default function StaffDashboard() {
       return
     }
     fetchStats()
+    fetchRequests()
   }, [session, router])
 
   const fetchStats = async () => {
@@ -153,37 +197,11 @@ export default function StaffDashboard() {
           totalTeamLeads,
         })
 
-        // Extract recent security alerts from staff approvals
-        const recentSecurityAlerts: SecurityAlert[] = []
-        
-        approvals.forEach((approval: any) => {
-          if (approval.comments && approval.comments.includes('[SECURITY UPDATE]')) {
-            const lines = approval.comments.split('\n')
-            lines.forEach((line: string) => {
-              if (line.includes('[SECURITY UPDATE]')) {
-                const securityMatch = line.match(/\[SECURITY UPDATE\] Student marked as (IN|OUT) by Security: ([^-]+)(?:-(.+))?/)
-                if (securityMatch) {
-                  const [, status, securityName, additionalComment] = securityMatch
-                  recentSecurityAlerts.push({
-                    requestId: approval.request?.id || approval.id,
-                    studentName: approval.request?.student?.name || 'Unknown Student',
-                    status: status as "IN" | "OUT",
-                    securityName: securityName.trim(),
-                    timestamp: approval.updatedAt || approval.createdAt,
-                    comments: additionalComment?.trim()
-                  })
-                }
-              }
-            })
-          }
-        })
+     
 
-        // Sort by timestamp (most recent first) and limit to 5
-        const sortedAlerts = recentSecurityAlerts
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-          .slice(0, 5)
+      
         
-        setSecurityAlerts(sortedAlerts)
+       
       } else {
         setError("Failed to fetch statistics")
       }
@@ -487,32 +505,30 @@ export default function StaffDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              {securityAlerts.length > 0 ? (
+              {requests.length > 0 ? (
                 <div className="space-y-3">
-                  {securityAlerts.map((alert, index) => (
-                    <div key={`${alert.requestId}-${index}`} className={`p-3 rounded-lg border-l-4 ${
-                      alert.status === 'IN' ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'
+                  {requests.map((request, id) => (
+                    <div key={`${request.id}-${id}`} className={`p-3 rounded-lg border-l-4 ${
+                      request.securityStatus === 'IN' ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'
                     }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            alert.status === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            request.securityStatus === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
-                            {alert.status === 'IN' ? 'Present' : 'Absent'}
+                            {request.securityStatus === 'IN' ? 'Present' : 'Absent'}
                           </span>
                           <div>
                             <p className="text-sm font-medium text-gray-900">
-                              {alert.studentName}
+                              {request.student.name}
                             </p>
                             <p className="text-xs text-gray-600">
-                              by {alert.securityName}
-                              {alert.comments && ` - ${alert.comments}`}
+                              is {request.securityStatus === 'IN' ? 'present' : 'absent'}
+                              at {request.securityApprovedAt ? new Date(request.securityApprovedAt).toLocaleString() : 'Unknown time'}
                             </p>
                           </div>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(alert.timestamp).toLocaleString()}
-                        </div>
+                       
                       </div>
                     </div>
                   ))}
