@@ -49,7 +49,7 @@ interface ExtendedStaybackInput extends StaybackRequestInput {
 const CLUB_OPTIONS = [
   "bi0s",
   "amFOSS",
-  "ICPC_Amrita",
+  "ICPC@Amrita",
 ]
 
 export function StaybackForm() {
