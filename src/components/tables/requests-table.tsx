@@ -1,18 +1,31 @@
-// components/tables/requests-table.tsx
-
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { format } from "date-fns"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
+import { Eye, FileText } from "lucide-react"
+
+const stageBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  TEAM_LEAD_PENDING: { label: "TL Pending", variant: "secondary" },
+  STAFF_PENDING: { label: "Staff Pending", variant: "secondary" },
+  WARDEN_PENDING: { label: "Warden Pending", variant: "outline" },
+  COMPLETED: { label: "Approved", variant: "default" },
+  REJECTED: { label: "Rejected", variant: "destructive" },
+}
 
 interface Approval {
   id: string
   status: string
-  comments?: string
-  approverType: string
-  staff?: { name: string }
-  hostel?: { name: string }
-  teamLead?: { name: string }
+  comments?: string | null
+  approvedAt?: string | null
+  teamLead?: { name: string; clubName?: string } | null
+  staff?: { name: string; department?: string } | null
+  hostel?: { name: string; hostelName?: string } | null
 }
 
 interface StaybackRequest {
@@ -23,172 +36,131 @@ interface StaybackRequest {
   toTime: string
   remarks: string
   status: string
+  stage: string
   createdAt: string
   approvals: Approval[]
 }
 
-export function RequestsTable() {
-  const [requests, setRequests] = useState<StaybackRequest[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  
-  useEffect(() => {
-    fetchRequests()
-  }, [])
-  
-  const fetchRequests = async () => {
-    try {
-      const response = await fetch("/api/stayback")
-      const data = await response.json()
-      setRequests(data)
-    } catch (error) {
-      console.error("Error fetching requests:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-  
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return "bg-green-100 text-green-800"
-      case "REJECTED":
-        return "bg-red-100 text-red-800"
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-  
-  // Calculate the actual status based on all approvals
-  const getActualStatus = (request: StaybackRequest) => {
-    if (request.approvals.length === 0) return "PENDING"
-    
-    // Check if any approval is rejected
-    const hasRejected = request.approvals.some(a => a.status === "REJECTED")
-    if (hasRejected) return "REJECTED"
-    
-    // Check if all approvals are approved
-    const allApproved = request.approvals.every(a => a.status === "APPROVED")
-    if (allApproved && request.approvals.length >= 3) return "APPROVED"
-    
-    // Otherwise, it's still pending
-    return "PENDING"
-  }
-  
-  if (isLoading) {
+export default function RequestsTable({ requests }: { requests: StaybackRequest[] }) {
+  const [selected, setSelected] = useState<StaybackRequest | null>(null)
+
+  if (!requests.length) {
     return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <FileText className="size-10 text-muted-foreground/40" />
+          <p className="mt-3 text-sm font-medium text-muted-foreground">No requests found</p>
+          <p className="text-xs text-muted-foreground/60">Submit a stayback request to see it here.</p>
+        </CardContent>
+      </Card>
     )
   }
-  
-  if (requests.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <p className="text-lg">No stayback requests found</p>
-        <p className="text-sm mt-2">Submit a new request to get started</p>
-      </div>
-    )
-  }
-  
+
   return (
-    <div className="overflow-x-auto shadow-md rounded-lg">
-      <table className="min-w-full bg-white border border-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Date
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Time
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Club
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Reason
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Approvals
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {requests.map((request) => {
-            const actualStatus = getActualStatus(request)
-            
-            return (
-              <tr key={request.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {format(new Date(request.date), "MMM dd, yyyy")}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <div className="flex flex-col">
-                    <span className="font-medium">{request.fromTime}</span>
-                    <span className="text-xs text-gray-500">to {request.toTime}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className="font-medium">{request.clubName}</span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                  <div className="truncate" title={request.remarks}>
-                    {request.remarks}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(actualStatus)}`}>
-                    {actualStatus}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <div className="space-y-2">
-                    {request.approvals.map((approval) => {
-                      const approverName = approval.staff?.name || 
-                                         approval.hostel?.name || 
-                                         approval.teamLead?.name || "Unknown"
-                      const approverType = approval.approverType || 
-                                         (approval.staff ? "STAFF" :
-                                         approval.hostel ? "HOSTEL" :
-                                         approval.teamLead ? "TEAMLEAD" : "UNKNOWN")
-                      
-                      const typeLabel = approverType === "STAFF" ? "Staff" :
-                                       approverType === "HOSTEL" ? "Hostel" :
-                                       approverType === "TEAMLEAD" ? "Team Lead" : "Unknown"
-                      
-                      return (
-                        <div key={approval.id} className="flex items-center justify-between text-xs">
-                          <span className="font-medium text-gray-700 min-w-[80px]">
-                            {typeLabel}:
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600">{approverName}</span>
-                            <span className={`px-2 py-1 rounded-full font-semibold ${getStatusBadgeColor(approval.status)}`}>
-                              {approval.status}
-                            </span>
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">My Requests</CardTitle>
+          <CardDescription>{requests.length} total request{requests.length !== 1 ? "s" : ""}</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Club</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Date</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Time</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Stage</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((req) => {
+                const badge = stageBadge[req.stage] || { label: req.stage, variant: "outline" as const }
+                return (
+                  <TableRow key={req.id} className="group">
+                    <TableCell className="text-sm font-medium">{req.clubName}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(req.date), "dd MMM yyyy")}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {req.fromTime} – {req.toTime}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={badge.variant} className="text-[10px] font-semibold">
+                        {badge.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" onClick={() => setSelected(req)}>
+                            <Eye className="mr-1 size-3.5" /> View
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Request Details</DialogTitle>
+                            <DialogDescription>#{req.id.slice(0, 8)}</DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-3 text-sm">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Club</p>
+                                <p className="font-medium">{req.clubName}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Date</p>
+                                <p className="font-medium">{format(new Date(req.date), "dd MMM yyyy")}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Time</p>
+                                <p className="font-medium">{req.fromTime} – {req.toTime}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Stage</p>
+                                <Badge variant={badge.variant} className="text-[10px]">{badge.label}</Badge>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Remarks</p>
+                              <p className="text-muted-foreground">{req.remarks}</p>
+                            </div>
+                            <Separator />
+                            <div>
+                              <p className="mb-2 text-[10px] font-semibold uppercase text-muted-foreground">Approval Chain</p>
+                              <div className="space-y-2">
+                                {req.approvals.map((a) => {
+                                  const name = a.teamLead?.name || a.staff?.name || a.hostel?.name || "Unknown"
+                                  const roleLabel = a.teamLead ? "Team Lead" : a.staff ? "Staff" : "Warden"
+                                  return (
+                                    <div key={a.id} className="flex items-center justify-between border p-2">
+                                      <div>
+                                        <p className="text-xs font-medium">{name}</p>
+                                        <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
+                                      </div>
+                                      <Badge
+                                        variant={a.status === "APPROVED" ? "default" : a.status === "REJECTED" ? "destructive" : "secondary"}
+                                        className="text-[10px]"
+                                      >
+                                        {a.status}
+                                      </Badge>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
-                    
-                    {/* Show pending approvers */}
-                    {request.approvals.length < 3 && (
-                      <div className="text-xs text-gray-500 italic mt-2">
-                        Waiting for {3 - request.approvals.length} more approval(s)
-                      </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </>
   )
 }

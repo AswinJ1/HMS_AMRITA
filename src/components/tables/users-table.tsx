@@ -1,488 +1,328 @@
 "use client"
 
 import { useState } from "react"
-import { Role } from "@prisma/client"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Users, Trash2, Pencil, KeyRound, MoreHorizontal, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+
+const roleBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  ADMIN: { label: "Admin", variant: "default" },
+  STAFF: { label: "Staff", variant: "secondary" },
+  STUDENT: { label: "Student", variant: "outline" },
+  TEAM_LEAD: { label: "Team Lead", variant: "outline" },
+  HOSTEL: { label: "Warden", variant: "secondary" },
+  SECURITY: { label: "Security", variant: "secondary" },
+}
 
 interface User {
   id: string
   email: string
   uid?: string
-  role: Role
+  role: string
   createdAt: string
-  student?: {
-    id: string
-    name: string
-    clubName: string
-    hostelName: string
-    roomNo: string
-    phoneNumber: string
-    isTeamLead: boolean
-  }
-  teamLead?: {
-    id: string
-    name: string
-    clubName: string
-    department?: string
-  }
-  staff?: {
-    id: string
-    name: string
-    department?: string
-  }
-  hostelAdmin?: {
-    id: string
-    name: string
-    hostelName: string
-  }
+  student?: { name: string; clubName?: string; hostelName?: string; roomNo?: string; phoneNumber?: string } | null
+  staff?: { name: string; department?: string } | null
+  hostel?: { name: string; hostelName?: string } | null
+  teamLead?: { name: string; clubName?: string; department?: string } | null
+  admin?: { name: string } | null
+  security?: { name: string; department?: string } | null
 }
 
-interface UsersTableProps {
-  users: User[]
-  onEdit?: (user: User) => void
-  onDelete?: (user: User) => void
-  onPromote?: (user: User) => void
-  onDemote?: (user: User) => void
-  showActions?: boolean
-  loading?: boolean
+function getUserName(u: User): string {
+  return u.student?.name || u.staff?.name || u.hostel?.name || u.teamLead?.name || u.admin?.name || u.security?.name || "—"
 }
 
-export default function UsersTable({
-  users,
-  onEdit,
-  onDelete,
-  onPromote,
-  onDemote,
-  showActions = true,
-  loading = false
-}: UsersTableProps) {
-  const [sortField, setSortField] = useState<string>("createdAt")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-  const [filterRole, setFilterRole] = useState<Role | "ALL">("ALL")
-  const [searchTerm, setSearchTerm] = useState("")
+function getUserDetail(u: User): string {
+  return u.staff?.department || u.hostel?.hostelName || u.teamLead?.clubName || u.security?.department || ""
+}
 
-  const getRoleColor = (role: Role) => {
-    switch (role) {
-      case "ADMIN":
-        return "bg-purple-100 text-purple-800"
-      case "STAFF":
-        return "bg-green-100 text-green-800"
-      case "HOSTEL":
-        return "bg-blue-100 text-blue-800"
-      case "TEAM_LEAD":
-        return "bg-orange-100 text-orange-800"
-      case "STUDENT":
-        return "bg-indigo-100 text-indigo-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+function getEditableFields(u: User): Record<string, string> {
+  const fields: Record<string, string> = { name: getUserName(u), email: u.email, uid: u.uid || "" }
+  switch (u.role) {
+    case "STUDENT":
+      fields.clubName = u.student?.clubName || ""
+      fields.hostelName = u.student?.hostelName || ""
+      fields.roomNo = u.student?.roomNo || ""
+      fields.phoneNumber = u.student?.phoneNumber || ""
+      break
+    case "STAFF":
+      fields.department = u.staff?.department || ""
+      break
+    case "HOSTEL":
+      fields.hostelName = u.hostel?.hostelName || ""
+      break
+    case "TEAM_LEAD":
+      fields.clubName = u.teamLead?.clubName || ""
+      fields.department = u.teamLead?.department || ""
+      break
+    case "SECURITY":
+      fields.department = u.security?.department || ""
+      break
+  }
+  return fields
+}
+
+const fieldLabels: Record<string, string> = {
+  name: "Name",
+  email: "Email",
+  uid: "UID",
+  clubName: "Club",
+  hostelName: "Hostel",
+  roomNo: "Room No",
+  phoneNumber: "Phone",
+  department: "Department",
+}
+
+export default function UsersTable({ users, onRefresh }: { users: User[]; onRefresh?: () => void }) {
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [editFields, setEditFields] = useState<Record<string, string>>({})
+  const [editLoading, setEditLoading] = useState(false)
+  const [pwUser, setPwUser] = useState<User | null>(null)
+  const [newPassword, setNewPassword] = useState("")
+  const [pwLoading, setPwLoading] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  function openEdit(u: User) {
+    setEditUser(u)
+    setEditFields(getEditableFields(u))
+  }
+
+  async function submitEdit() {
+    if (!editUser) return
+    setEditLoading(true)
+    try {
+      const res = await fetch("/api/users/edit", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: editUser.id, ...editFields }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed")
+      toast.success("User updated successfully")
+      setEditUser(null)
+      onRefresh?.()
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setEditLoading(false)
     }
   }
 
-  const getUserName = (user: User) => {
-    if (user.student) return user.student.name
-    if (user.teamLead) return user.teamLead.name
-    if (user.staff) return user.staff.name
-    if (user.hostelAdmin) return user.hostelAdmin.name
-    return "N/A"
+  async function submitPasswordChange() {
+    if (!pwUser || !newPassword) return
+    setPwLoading(true)
+    try {
+      const res = await fetch("/api/users/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: pwUser.id, newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed")
+      toast.success("Password changed successfully")
+      setPwUser(null)
+      setNewPassword("")
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setPwLoading(false)
+    }
   }
 
-  const getUserDetails = (user: User) => {
-    if (user.student) {
-      return {
-        primary: user.student.clubName,
-        secondary: `${user.student.hostelName} - Room ${user.student.roomNo}`,
-        contact: user.student.phoneNumber
+  async function handleDelete(userId: string) {
+    try {
+      const res = await fetch(`/api/users?userId=${userId}`, { method: "DELETE" })
+      if (!res.ok) {
+        const r = await res.json()
+        throw new Error(r.error || "Failed")
       }
-    }
-    if (user.teamLead) {
-      return {
-        primary: user.teamLead.clubName,
-        secondary: user.teamLead.department || "No Department",
-        contact: ""
-      }
-    }
-    if (user.staff) {
-      return {
-        primary: user.staff.department || "No Department",
-        secondary: "",
-        contact: ""
-      }
-    }
-    if (user.hostelAdmin) {
-      return {
-        primary: user.hostelAdmin.hostelName,
-        secondary: "",
-        contact: ""
-      }
-    }
-    return { primary: "", secondary: "", contact: "" }
-  }
-
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      setSortField(field)
-      setSortDirection("asc")
+      toast.success("User deleted")
+      onRefresh?.()
+    } catch (e: any) {
+      toast.error(e.message)
     }
   }
 
-  const filteredAndSortedUsers = users
-    .filter(user => {
-      const matchesRole = filterRole === "ALL" || user.role === filterRole
-      const matchesSearch = 
-        getUserName(user).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.uid && user.uid.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        getUserDetails(user).primary.toLowerCase().includes(searchTerm.toLowerCase())
-      
-      return matchesRole && matchesSearch
-    })
-    .sort((a, b) => {
-      let aValue: any
-      let bValue: any
-
-      switch (sortField) {
-        case "name":
-          aValue = getUserName(a)
-          bValue = getUserName(b)
-          break
-        case "email":
-          aValue = a.email
-          bValue = b.email
-          break
-        case "role":
-          aValue = a.role
-          bValue = b.role
-          break
-        case "createdAt":
-          aValue = new Date(a.createdAt)
-          bValue = new Date(b.createdAt)
-          break
-        default:
-          return 0
-      }
-
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
-      return 0
-    })
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
-  const canPromote = (user: User) => {
-    return user.role === "STUDENT" && !user.student?.isTeamLead
-  }
-
-  const canDemote = (user: User) => {
-    return user.role === "TEAM_LEAD"
-  }
-
-  if (loading) {
+  if (!users.length) {
     return (
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="h-6 bg-gray-200 rounded animate-pulse w-32"></div>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Users className="size-10 text-muted-foreground/40" />
+          <p className="mt-3 text-sm font-medium text-muted-foreground">No users found</p>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      {/* Header with filters */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h3 className="text-lg font-medium text-gray-900">
-            Users ({filteredAndSortedUsers.length})
-          </h3>
-          
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <svg
-                className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-
-            {/* Role filter */}
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value as Role | "ALL")}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="ADMIN">Admin</option>
-              <option value="STAFF">Staff</option>
-              <option value="HOSTEL">Hostel</option>
-              <option value="TEAM_LEAD">Team Lead</option>
-              <option value="STUDENT">Student</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                onClick={() => handleSort("name")}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              >
-                <div className="flex items-center gap-1">
-                  Name
-                  {sortField === "name" && (
-                    <svg
-                      className={`w-4 h-4 transform ${
-                        sortDirection === "desc" ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                </div>
-              </th>
-              <th
-                onClick={() => handleSort("email")}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              >
-                <div className="flex items-center gap-1">
-                  Email & UID
-                  {sortField === "email" && (
-                    <svg
-                      className={`w-4 h-4 transform ${
-                        sortDirection === "desc" ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                </div>
-              </th>
-              <th
-                onClick={() => handleSort("role")}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              >
-                <div className="flex items-center gap-1">
-                  Role
-                  {sortField === "role" && (
-                    <svg
-                      className={`w-4 h-4 transform ${
-                        sortDirection === "desc" ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                </div>
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Details
-              </th>
-              <th
-                onClick={() => handleSort("createdAt")}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              >
-                <div className="flex items-center gap-1">
-                  Created
-                  {sortField === "createdAt" && (
-                    <svg
-                      className={`w-4 h-4 transform ${
-                        sortDirection === "desc" ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                </div>
-              </th>
-              {showActions && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAndSortedUsers.length === 0 ? (
-              <tr>
-                <td colSpan={showActions ? 6 : 5} className="px-6 py-12 text-center">
-                  <div className="flex flex-col items-center">
-                    <svg
-                      className="w-12 h-12 text-gray-400 mb-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                      />
-                    </svg>
-                    <p className="text-gray-500 text-lg font-medium">No users found</p>
-                    <p className="text-gray-400 text-sm mt-1">
-                      {searchTerm || filterRole !== "ALL"
-                        ? "Try adjusting your search or filter criteria"
-                        : "No users have been created yet"}
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredAndSortedUsers.map((user) => {
-                const details = getUserDetails(user)
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">All Users</CardTitle>
+          <CardDescription>{users.length} total</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Name</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Email</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">UID</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Role</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Detail</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((u) => {
+                const badge = roleBadge[u.role] || { label: u.role, variant: "outline" as const }
                 return (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-gray-600 font-medium text-sm">
-                            {getUserName(user).charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {getUserName(user)}
-                          </div>
-                          {user.student?.isTeamLead && (
-                            <div className="text-xs text-orange-600 font-medium">
-                              Promoted from Student
-                            </div>
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">{getUserName(u)}</TableCell>
+                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                    <TableCell className="text-muted-foreground font-mono text-[11px]">{u.uid || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={badge.variant} className="text-[10px] font-semibold">{badge.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{getUserDetail(u)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="size-8 p-0">
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem onClick={() => openEdit(u)}>
+                            <Pencil className="mr-2 size-3.5" />
+                            Edit User
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setPwUser(u); setNewPassword("") }}>
+                            <KeyRound className="mr-2 size-3.5" />
+                            Change Password
+                          </DropdownMenuItem>
+                          {u.role !== "ADMIN" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setDeleteConfirmId(u.id)}
+                              >
+                                <Trash2 className="mr-2 size-3.5" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </>
                           )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{user.email}</div>
-                      {user.uid && (
-                        <div className="text-sm text-gray-500">UID: {user.uid}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
-                          user.role
-                        )}`}
-                      >
-                        {user.role.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{details.primary}</div>
-                      {details.secondary && (
-                        <div className="text-sm text-gray-500">{details.secondary}</div>
-                      )}
-                      {details.contact && (
-                        <div className="text-sm text-gray-500">{details.contact}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(user.createdAt)}
-                    </td>
-                    {showActions && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
-                          {onEdit && (
-                            <button
-                              onClick={() => onEdit(user)}
-                              className="text-indigo-600 hover:text-indigo-900 transition-colors"
-                              title="Edit user"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                          )}
-                          {onPromote && canPromote(user) && (
-                            <button
-                              onClick={() => onPromote(user)}
-                              className="text-green-600 hover:text-green-900 transition-colors"
-                              title="Promote to Team Lead"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                              </svg>
-                            </button>
-                          )}
-                          {onDemote && canDemote(user) && (
-                            <button
-                              onClick={() => onDemote(user)}
-                              className="text-orange-600 hover:text-orange-900 transition-colors"
-                              title="Demote from Team Lead"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                              </svg>
-                            </button>
-                          )}
-                          {onDelete && user.role !== "ADMIN" && (
-                            <button
-                              onClick={() => onDelete(user)}
-                              className="text-red-600 hover:text-red-900 transition-colors"
-                              title="Delete user"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
                 )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Editing <span className="font-semibold text-foreground">{editUser ? getUserName(editUser) : ""}</span>
+              {editUser && (
+                <Badge variant={roleBadge[editUser.role]?.variant || "outline"} className="ml-2 text-[10px]">
+                  {roleBadge[editUser.role]?.label || editUser.role}
+                </Badge>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {Object.entries(editFields).map(([key, value]) => (
+              <div key={key} className="space-y-1">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {fieldLabels[key] || key}
+                </Label>
+                <Input
+                  value={value}
+                  onChange={(e) => setEditFields({ ...editFields, [key]: e.target.value })}
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)} disabled={editLoading}>
+              Cancel
+            </Button>
+            <Button onClick={submitEdit} disabled={editLoading}>
+              {editLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Pencil className="mr-2 size-4" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={!!pwUser} onOpenChange={(open) => { if (!open) { setPwUser(null); setNewPassword("") } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for <span className="font-semibold text-foreground">{pwUser ? getUserName(pwUser) : ""}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              New Password
+            </Label>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Min 6 characters"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPwUser(null); setNewPassword("") }} disabled={pwLoading}>
+              Cancel
+            </Button>
+            <Button onClick={submitPasswordChange} disabled={pwLoading || newPassword.length < 6}>
+              {pwLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <KeyRound className="mr-2 size-4" />}
+              Change Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteConfirmId) { handleDelete(deleteConfirmId); setDeleteConfirmId(null) } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
