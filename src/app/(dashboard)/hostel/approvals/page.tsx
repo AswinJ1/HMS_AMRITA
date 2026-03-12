@@ -181,6 +181,23 @@ export default function HostelApprovalsPage() {
                     })}
                 </div>
               )}
+              {/* Security Status */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Security Status</p>
+                <div className="mt-1 flex items-center justify-between border p-2">
+                  <span className="text-xs">{selected?.request?.securityCheckedBy || "Security"}</span>
+                  <Badge
+                    variant={
+                      selected?.request?.securityStatus === "IN" ? "default"
+                        : selected?.request?.securityStatus === "OUT" ? "secondary"
+                        : "outline"
+                    }
+                    className="text-[10px]"
+                  >
+                    {selected?.request?.securityStatus || "NOT CHECKED"}
+                  </Badge>
+                </div>
+              </div>
               <div>
                 <p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">Comments (optional)</p>
                 <Textarea value={comments} onChange={(e) => setComments(e.target.value)} placeholder="Add comments..." rows={2} />

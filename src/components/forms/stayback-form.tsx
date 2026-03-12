@@ -46,7 +46,8 @@ export default function StaybackForm() {
         if (isStudent && data.student) {
           setProfile({ clubName: data.student.clubName, hostelName: data.student.hostelName })
         } else if (!isStudent && data.teamLead) {
-          setProfile({ clubName: data.teamLead.clubName })
+          // Team lead was promoted from a student — get hostelName from the student record
+          setProfile({ clubName: data.teamLead.clubName, hostelName: data.student?.hostelName })
         }
       })
       .catch(() => {})
@@ -251,7 +252,7 @@ export default function StaybackForm() {
                   </div>
                 )
               ) : (
-                /* Team leads don't have hostelName — let them pick manually */
+                /* Team leads — auto-match warden from their hostel */
                 matchedWarden ? (
                   <div className="flex items-center gap-2 h-10 px-3 border bg-muted text-sm">
                     <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
@@ -261,16 +262,13 @@ export default function StaybackForm() {
                     </span>
                   </div>
                 ) : (
-                  <Select onValueChange={(v) => { setHostelId(v); setFormErrors((prev) => { const n = { ...prev }; delete n.hostelId; return n }) }}>
-                    <SelectTrigger><SelectValue placeholder="Select warden" /></SelectTrigger>
-                    <SelectContent>
-                      {hostelList.map((h) => (
-                        <SelectItem key={h.id} value={h.id}>
-                          {h.name} {h.hostelName ? `(${h.hostelName})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2 h-10 px-3 border border-dashed text-sm text-muted-foreground">
+                    <span>
+                      {profile.hostelName
+                        ? `No warden found for your hostel (${profile.hostelName})`
+                        : "Hostel not set in your profile"}
+                    </span>
+                  </div>
                 )
               )}
               {formErrors.hostelId && <p className="text-xs text-destructive">{formErrors.hostelId}</p>}

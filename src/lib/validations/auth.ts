@@ -52,9 +52,9 @@ export const studentRegisterSchema = z.object({
   // Basic credentials
   email: z.string().email("Invalid email address"),
   uid: z.string()
-    .min(8, "UID must be at least 8 characters")
-    .max(15, "UID must not exceed 15 characters")
-    .regex(/^[A-Z0-9]+$/, "UID must contain only uppercase letters and numbers"),
+    .min(5, "UID must be at least 5 characters")
+    .max(25, "UID must not exceed 25 characters")
+    .regex(/^[A-Z0-9.]+$/, "UID must contain only uppercase letters, numbers, and dots"),
   password: z.string()
     .min(6, "Password must be at least 6 characters")
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")

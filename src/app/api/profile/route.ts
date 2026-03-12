@@ -219,8 +219,7 @@ export async function PATCH(request: NextRequest) {
                 name: name || user.student.name,
                 phoneNumber: phoneNumber || user.student.phoneNumber,
                 roomNo: roomNo || user.student.roomNo,
-                hostelName: hostelName || user.student.hostelName,
-                clubName: clubName || user.student.clubName,
+                // hostelName and clubName can only be changed by admin
               }
             }
           },
