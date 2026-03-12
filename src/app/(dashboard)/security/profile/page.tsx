@@ -22,6 +22,8 @@ import {
   IdCard,
   Lock,
 } from "lucide-react"
+import { AvatarSelector } from "@/components/avatar-selector"
+
 
 interface SecurityProfile {
   id: string
@@ -35,6 +37,8 @@ interface SecurityProfile {
     department: string | null
     gender: string
     createdAt: string
+    gender: "male" | "female"
+    avatarUrl?: string
   }
 }
 
