@@ -1,211 +1,136 @@
-// app/(dashboard)/student/page.tsx
-
 "use client"
 
-import { useSession } from "next-auth/react"
-import { signOut } from "next-auth/react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { User, FileText, ClipboardList, LogOut } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { FileText, Send, Clock, CheckCircle2, XCircle, ArrowRight } from "lucide-react"
+import RoleGuard from "@/components/auth/role-guard"
+import { format } from "date-fns"
 
-interface StudentProfile {
-  id: string
-  email: string
-  uid: string
-  role: string
-  student: {
-    id: string
-    name: string
-    department: string
-    year: string
-    phoneNumber: string
-    hostelName: string
-    roomNo: string
-    clubName: string
-    gender: "male" | "female"
-    avatarUrl?: string
-  }
+interface Request {
+  id: string; clubName: string; date: string; stage: string; createdAt: string
+}
+
+const stageMeta: Record<string, { label: string; color: string }> = {
+  TEAM_LEAD_PENDING: { label: "TL Review", color: "text-yellow-600" },
+  STAFF_PENDING: { label: "Staff Review", color: "text-blue-600" },
+  WARDEN_PENDING: { label: "Warden Review", color: "text-purple-600" },
+  COMPLETED: { label: "Approved", color: "text-green-600" },
+  REJECTED: { label: "Rejected", color: "text-red-600" },
 }
 
 export default function StudentDashboard() {
   const { data: session } = useSession()
-  const [profile, setProfile] = useState<StudentProfile | null>(null)
+  const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchProfile()
+    fetch("/api/stayback")
+      .then((r) => r.json())
+      .then((data) => setRequests(Array.isArray(data) ? data : []))
+      .finally(() => setLoading(false))
   }, [])
 
-  const fetchProfile = async () => {
-    try {
-      const response = await fetch("/api/profile")
-      if (response.ok) {
-        const data = await response.json()
-        setProfile(data)
-      }
-    } catch (error) {
-      console.error("Error fetching profile:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const pending = requests.filter((r) => !["COMPLETED", "REJECTED"].includes(r.stage)).length
+  const approved = requests.filter((r) => r.stage === "COMPLETED").length
+  const rejected = requests.filter((r) => r.stage === "REJECTED").length
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
-  }
+  const stats = [
+    { label: "Total Requests", value: requests.length, icon: <FileText className="size-4" />, desc: "All submitted requests" },
+    { label: "In Progress", value: pending, icon: <Clock className="size-4" />, desc: "Awaiting approval" },
+    { label: "Approved", value: approved, icon: <CheckCircle2 className="size-4" />, desc: "Fully approved" },
+    { label: "Rejected", value: rejected, icon: <XCircle className="size-4" />, desc: "Denied requests" },
+  ]
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              {/* <Link href="/student/profile"> */}
-                <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-blue-100 hover:ring-blue-300 transition-all">
-                  {profile?.student?.avatarUrl ? (
-                    <AvatarImage src={profile.student.avatarUrl} alt={profile.student.name} />
-                  ) : (
-                    <AvatarFallback className="bg-blue-600 text-white">
-                      {loading ? "..." : profile?.student?.name ? getInitials(profile.student.name) : "ST"}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-              {/* </Link> */}
-              
-              {/* Name and Role */}
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  {loading ? "Loading..." : profile?.student?.name || session?.user?.name || "Student"}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  {profile?.student?.department || "Student Dashboard"}
-                </p>
+    <RoleGuard allowedRoles={["STUDENT"]}>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Welcome back, {session?.user?.name || "Student"}
+            </p>
+          </div>
+          <Button size="sm" asChild>
+            <Link href="/student/stayback">
+              <Send className="mr-2 size-4" /> New Request
+            </Link>
+          </Button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((s) =>
+            loading ? (
+              <Skeleton key={s.label} className="h-24" />
+            ) : (
+              <Card key={s.label}>
+                <CardContent className="flex items-start justify-between p-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.label}</p>
+                    <p className="mt-1 text-2xl font-bold">{s.value}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{s.desc}</p>
+                  </div>
+                  <div className="flex size-9 items-center justify-center bg-primary/10 text-primary">
+                    {s.icon}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          )}
+        </div>
+
+        {/* Recent Requests */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base">Recent Requests</CardTitle>
+              <CardDescription>Your latest stayback submissions</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/student/requests">View All <ArrowRight className="ml-1 size-3.5" /></Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {loading ? (
+              <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-12" />)}</div>
+            ) : requests.length === 0 ? (
+              <div className="py-8 text-center">
+                <FileText className="mx-auto size-8 text-muted-foreground/30" />
+                <p className="mt-2 text-sm text-muted-foreground">No requests yet</p>
               </div>
-            </div>
-
-            {/* Profile and Logout Buttons */}
-            <div className="flex items-center gap-3">
-              {/* <Link href="/student/profile">
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Profile
-                </Button>
-              </Link> */}
-              {/* <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => signOut()}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button> */}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {profile?.student?.name?.split(" ")[0] || "Student"}! 👋
-          </h2>
-          <p className="text-gray-600">
-            Manage your stayback requests and view your profile information.
-          </p>
-        </div>
-
-        {/* Quick Stats */}
-        {profile && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Hostel</CardDescription>
-                <CardTitle className="text-2xl">{profile.student.hostelName}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Room Number</CardDescription>
-                <CardTitle className="text-2xl">{profile.student.roomNo}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Club</CardDescription>
-                <CardTitle className="text-2xl">{profile.student.clubName}</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-        )}
-
-        {/* Action Cards */}
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Stayback Card */}
-          <Link href="/student/stayback">
-            <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 hover:border-blue-500">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <FileText className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <CardTitle>New Stayback Request</CardTitle>
-                </div>
-                {/* <CardDescription>
-                  Submit a new stayback request for approval
-                </CardDescription> */}
-              </CardHeader>
-            </Card>
-          </Link>
-
-          {/* Requests Card */}
-          <Link href="/student/requests">
-            <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 hover:border-green-500">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <ClipboardList className="h-6 w-6 text-green-600" />
-                  </div>
-                  <CardTitle>My Requests</CardTitle>
-                </div>
-                {/* <CardDescription>
-                  View all your stayback requests and their status
-                </CardDescription> */}
-              </CardHeader>
-            </Card>
-          </Link>
-
-          {/* Profile Card */}
-          <Link href="/student/profile">
-            <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 hover:border-purple-500">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <User className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <CardTitle>My Profile</CardTitle>
-                </div>
-                {/* <CardDescription>
-                  View and manage your student profile
-                </CardDescription> */}
-              </CardHeader>
-            </Card>
-          </Link>
-        </div>
-      </main>
-    </div>
+            ) : (
+              <div className="space-y-2">
+                {requests.slice(0, 5).map((req) => {
+                  const meta = stageMeta[req.stage] || { label: req.stage, color: "" }
+                  return (
+                    <div key={req.id} className="flex items-center justify-between border p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-8 items-center justify-center bg-muted text-[10px] font-bold text-muted-foreground">
+                          {req.clubName.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{req.clubName}</p>
+                          <p className="text-[11px] text-muted-foreground">{format(new Date(req.date), "dd MMM yyyy")}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={`text-[10px] font-semibold ${meta.color}`}>
+                        {meta.label}
+                      </Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </RoleGuard>
   )
 }

@@ -1,28 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Role } from "@prisma/client"
-import { loginSchema } from "@/lib/validations/auth"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Eye, EyeOff, LogIn } from "lucide-react"
-
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -31,350 +16,190 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
+import { Loader2, ArrowRight } from "lucide-react"
 
-type LoginFormData = z.infer<typeof loginSchema>
+const roleRedirects: Record<string, string> = {
+  ADMIN: "/admin",
+  STAFF: "/staff",
+  STUDENT: "/student",
+  TEAM_LEAD: "/team-lead",
+  HOSTEL: "/hostel",
+  SECURITY: "/security",
+}
 
 export function LoginForm() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
-  
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      role: "STUDENT",
-      email: "",
-      uid: "",
-      password: "",
-    },
-  })
-  
-  const watchRole = form.watch("role")
-  
-  // Determine which credential fields to show
-  const showEmail = watchRole === "ADMIN" || watchRole === "STUDENT" || watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD" || watchRole === "SECURITY"
-  const showUID = watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD" || watchRole === "STUDENT" || watchRole === "SECURITY"
-  const isUIDRequired = watchRole === "STAFF" || watchRole === "HOSTEL" || watchRole === "TEAM_LEAD" || watchRole === "SECURITY"
-  const isEmailRequired = watchRole === "ADMIN" || watchRole === "STUDENT"
+  const [role, setRole] = useState("")
+  const [email, setEmail] = useState("")
+  const [uid, setUid] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleRoleChange = (role: Role) => {
-    form.setValue("role", role)
-    // Clear previous credential values when role changes
-    form.setValue("email", "")
-    form.setValue("uid", "")
-    setError(null)
-  }
-  
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true)
-    setError(null)
-    
+  const needsUid = ["STAFF", "HOSTEL", "TEAM_LEAD", "SECURITY"].includes(role)
+  const needsEmail = ["ADMIN", "STUDENT", "STAFF", "HOSTEL", "TEAM_LEAD", "SECURITY"].includes(role)
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+
     try {
       const result = await signIn("credentials", {
-        email: data.email || "",
-        uid: data.uid || "",
-        password: data.password,
-        role: data.role,
         redirect: false,
+        email: email || undefined,
+        uid: uid || undefined,
+        password,
+        role,
       })
-      
+
       if (result?.error) {
-        setError("Invalid credentials. Please check your email/UID and password.")
+        setError(result.error)
       } else {
-        // Successful login - redirect to appropriate dashboard
-        router.push(getDashboardUrl(data.role))
+        router.push(roleRedirects[role] || "/")
         router.refresh()
       }
-    } catch (error) {
-      setError("An unexpected error occurred. Please try again.")
+    } catch {
+      setError("An unexpected error occurred")
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
-  }
-
-  const getRoleVariant = (role: Role): "default" | "secondary" | "destructive" | "outline" => {
-    const variants = {
-      STUDENT: "default",
-      STAFF: "secondary", 
-      ADMIN: "destructive",
-      HOSTEL: "outline",
-      TEAM_LEAD: "secondary",
-      SECURITY: "outline"
-    }
-    return variants[role] as "default" | "secondary" | "destructive" | "outline"
-  }
-
-  const getRoleDescription = (role: Role) => {
-    const descriptions = {
-      STUDENT: "Access your stayback requests and club activities",
-      STAFF: "Manage approvals and team lead operations", 
-      ADMIN: "Full system administration access",
-      HOSTEL: "Manage hostel-specific approvals",
-      TEAM_LEAD: "Approve requests for your club members",
-      SECURITY: "Monitor campus security and oversee activities"
-    }
-    return descriptions[role]
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center mb-4">
-            <Image
-              src="/logo.png"
-              alt="Amrita Logo"
-              width={120}
-              height={120}
-              priority
-            />
-          </div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
-            Welcome Back
-          </h2>
-          <p className="text-muted-foreground">
-            Sign in to your hostel management account
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
+      <div className="w-full max-w-lg">
+        {/* Logo & Branding */}
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Image
+            src="/logo.png"
+            alt="Amrita Logo"
+            width={72}
+            height={72}
+            className="mb-4"
+            priority
+          />
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            HMS Amrita
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Hostel Stayback Management System
           </p>
         </div>
 
-        {/* Login Card */}
-        <Card className="shadow-lg">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-xl">Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access your dashboard
-            </CardDescription>
-          </CardHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <CardContent className="space-y-6">
-                {/* Role Selection */}
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Select Your Role</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value)
-                          handleRoleChange(value as Role)
-                        }}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="STUDENT">Student</SelectItem>
-                          <SelectItem value="STAFF">Staff</SelectItem>
-                          <SelectItem value="ADMIN">Admin</SelectItem>
-                          <SelectItem value="HOSTEL">Hostel Admin</SelectItem>
-                          <SelectItem value="TEAM_LEAD">Team Lead</SelectItem>
-                          <SelectItem value="SECURITY">Security</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2">
-                        <Badge variant={getRoleVariant(watchRole)}>
-                          {watchRole.replace("_", " ")}
-                        </Badge>
-                        <FormDescription className="sm:text-right">
-                          {getRoleDescription(watchRole)}
-                        </FormDescription>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+        {/* Card */}
+        <div className="border bg-card p-8 shadow-sm sm:p-10">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold tracking-tight">Sign in to your account</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Select your role and enter your credentials
+            </p>
+          </div>
+
+          {error && (
+            <Alert variant="destructive" className="mb-5">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={onSubmit} className="space-y-5">
+            {/* Role */}
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Role
+              </Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger id="role" className="h-11 text-sm">
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="STUDENT">Student</SelectItem>
+                  <SelectItem value="TEAM_LEAD">Team Lead</SelectItem>
+                  <SelectItem value="STAFF">Staff</SelectItem>
+                  <SelectItem value="HOSTEL">Hostel Warden</SelectItem>
+                  <SelectItem value="SECURITY">Security</SelectItem>
+                  <SelectItem value="ADMIN">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* UID */}
+            {needsUid && (
+              <div className="space-y-2">
+                <Label htmlFor="uid" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  UID
+                </Label>
+                <Input
+                  id="uid"
+                  value={uid}
+                  onChange={(e) => setUid(e.target.value)}
+                  placeholder="Enter your UID"
+                  className="h-11 text-sm"
+                  required
                 />
+              </div>
+            )}
 
-                {/* Email Field */}
-                {showEmail && (
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Email Address {isEmailRequired && <span className="text-red-500">*</span>}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="Enter your email address"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {/* UID Field */}
-                {showUID && (
-                  <FormField
-                    control={form.control}
-                    name="uid"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          UID {isUIDRequired && <span className="text-red-500">*</span>}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder={isUIDRequired ? "Enter your staff UID" : "Enter your UID"}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {/* Password Field */}
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter your password"
-                            {...field}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                            <span className="sr-only">
-                              {showPassword ? "Hide password" : "Show password"}
-                            </span>
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            {/* Email */}
+            {needsEmail && (
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@amrita.edu"
+                  className="h-11 text-sm"
+                  required
                 />
+              </div>
+            )}
 
-                {/* Error Message */}
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
+            {/* Password */}
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="h-11 text-sm"
+                required
+              />
+            </div>
 
-              <CardFooter className="flex flex-col space-y-4">
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w- mt-5"
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Sign In
-                    </>
-                  )}
-                </Button>
+            <Button
+              type="submit"
+              className="h-11 w-full text-sm font-semibold"
+              disabled={loading || !role}
+            >
+              {loading ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <ArrowRight className="mr-2 size-4" />
+              )}
+              Sign in
+            </Button>
+          </form>
 
-                <Separator className="my-2" />
+          <div className="mt-6 border-t pt-5 text-center text-sm text-muted-foreground">
+            New student?{" "}
+            <Link href="/register" className="font-semibold text-primary hover:underline">
+              Create an account
+            </Link>
+          </div>
+        </div>
 
-                {/* Footer Links */}
-                <div className="w-full space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <Button variant="link" asChild className="p-0 h-auto font-normal">
-                      <Link href="/register">
-                        New student? Create account →
-                      </Link>
-                    </Button>
-                    <Button variant="link" asChild className="p-0 h-auto font-normal text-muted-foreground">
-                      <Link href="/forgot-password">
-                        Forgot password?
-                      </Link>
-                    </Button>
-                  </div>
-                  
-                  {/* Help Text */}
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">
-                      Need help? Contact your hostel administrator
-                    </p>
-                  </div>
-                </div>
-              </CardFooter>
-            </form>
-          </Form>
-        </Card>
+        <p className="mt-6 text-center text-[11px] text-muted-foreground">
+          &copy; {new Date().getFullYear()} Amrita Vishwa Vidyapeetham. All rights reserved.
+        </p>
       </div>
     </div>
   )
-}
-
-function getDashboardUrl(role: Role): string {
-  const dashboards: Record<Role, string> = {
-    ADMIN: "/admin",
-    STAFF: "/staff",
-    STUDENT: "/student",
-    TEAM_LEAD: "/team-lead",
-    HOSTEL: "/hostel",
-    SECURITY: "/security",
-  }
-  return dashboards[role] || "/"
 }

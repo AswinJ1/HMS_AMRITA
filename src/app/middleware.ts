@@ -9,7 +9,7 @@ const roleAccess = {
   ADMIN: ["/admin", "/api/users", "/api/logs"],
   STAFF: ["/staff", "/api/approvals", "/api/team-leads"],
   STUDENT: ["/student", "/api/stayback"],
-  TEAM_LEAD: ["/team-lead", "/api/approvals"],
+  TEAM_LEAD: ["/team-lead", "/api/approvals", "/api/stayback"],
   HOSTEL: ["/hostel", "/api/approvals"],
   SECURITY: ["/security", "/api/security"],
 }

@@ -1,28 +1,39 @@
-// app/(dashboard)/student/requests/page.tsx
+"use client"
 
-import { RequestsTable } from "@/components/tables/requests-table"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
+import RoleGuard from "@/components/auth/role-guard"
+import RequestsTable from "@/components/tables/requests-table"
 
 export default function StudentRequestsPage() {
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/stayback")
+      .then((r) => r.json())
+      .then((data) => setRequests(Array.isArray(data) ? data : []))
+      .finally(() => setLoading(false))
+  }, [])
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <Link href="/student">
-            <Button variant="outline" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
+    <RoleGuard allowedRoles={["STUDENT"]}>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">My Requests</h1>
+          <p className="text-sm text-muted-foreground">
+            Track the status of all your stayback requests.
+          </p>
         </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold mb-6">My Stayback Requests</h2>
-          <RequestsTable />
-        </div>
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        ) : (
+          <RequestsTable requests={requests} />
+        )}
       </div>
-    </div>
+    </RoleGuard>
   )
 }

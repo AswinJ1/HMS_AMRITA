@@ -1,220 +1,106 @@
-// app/(dashboard)/admin/page.tsx
-
 "use client"
 
+import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { signOut } from "next-auth/react"
-import { useState, useEffect } from "react"
 import Link from "next/link"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
-
-interface Stats {
-  totalUsers: number
-  totalRequests: number
-  pendingRequests: number
-  approvedRequests: number
-  rejectedRequests: number
-}
+import { Users, Activity, Shield, FileText, ArrowRight } from "lucide-react"
+import RoleGuard from "@/components/auth/role-guard"
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
-  const [stats, setStats] = useState<Stats>({
-    totalUsers: 0,
-    totalRequests: 0,
-    pendingRequests: 0,
-    approvedRequests: 0,
-    rejectedRequests: 0,
-  })
+  const [users, setUsers] = useState<any[]>([])
+  const [logStats, setLogStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchStats()
+    Promise.all([
+      fetch("/api/users").then((r) => r.json()),
+      fetch("/api/logs").then((r) => r.json()),
+    ])
+      .then(([u, l]) => {
+        setUsers(Array.isArray(u) ? u : [])
+        setLogStats(l)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
-  const fetchStats = async () => {
-    try {
-      setLoading(true)
-      setError(null)
+  const totalUsers = users.length
+  const staffCount = users.filter((u) => u.role === "STAFF").length
+  const studentCount = users.filter((u) => u.role === "STUDENT" || u.role === "TEAM_LEAD").length
+  const totalRequests = logStats?.requests?.length ?? 0
 
-      const [usersRes, logsRes] = await Promise.all([
-        fetch("/api/users"),
-        fetch("/api/logs"),
-      ])
-
-      if (!usersRes.ok) throw new Error(`Users API failed: ${usersRes.status}`)
-      if (!logsRes.ok) throw new Error(`Logs API failed: ${logsRes.status}`)
-
-      const users = await usersRes.json()
-      const logs = await logsRes.json()
-
-      const statusStats = logs.stats?.status || logs.stats || {}
-      const requestsArray = logs.requests || logs || []
-
-      setStats({
-        totalUsers: Array.isArray(users) ? users.length : 0,
-        totalRequests: Array.isArray(requestsArray)
-          ? requestsArray.length
-          : logs.total || 0,
-        pendingRequests: statusStats.PENDING || 0,
-        approvedRequests: statusStats.APPROVED || 0,
-        rejectedRequests: statusStats.REJECTED || 0,
-      })
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to fetch data")
-    } finally {
-      setLoading(false)
-    }
-  }
+  const stats = [
+    { label: "Total Users", value: totalUsers, icon: <Users className="size-4" />, desc: "All registered accounts" },
+    { label: "Staff & Wardens", value: staffCount, icon: <Shield className="size-4" />, desc: "Staff + Security + Warden" },
+    { label: "Students & TLs", value: studentCount, icon: <FileText className="size-4" />, desc: "Students and Team Leads" },
+    { label: "Total Requests", value: totalRequests, icon: <Activity className="size-4" />, desc: "All stayback requests" },
+  ]
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="border-b bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {session?.user?.email}
-            </span>
-            <Button variant="destructive" size="sm" onClick={() => signOut()}>
-              Logout
+    <RoleGuard allowedRoles={["ADMIN"]}>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground">System overview and management</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/logs"><Activity className="mr-2 size-4" /> Logs</Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link href="/admin/users"><Users className="mr-2 size-4" /> Manage Users</Link>
             </Button>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Error */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription className="flex justify-between items-center">
-              {error}
-              <Button size="sm" variant="secondary" onClick={fetchStats}>
-                Retry
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          {loading ? (
-            <>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Card key={i} className="p-6">
-                  <Skeleton className="h-4 w-24 mb-3" />
-                  <Skeleton className="h-8 w-16" />
-                </Card>
-              ))}
-            </>
-          ) : (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Total Users</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{stats.totalUsers}</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((s) =>
+            loading ? <Skeleton key={s.label} className="h-24" /> : (
+              <Card key={s.label}>
+                <CardContent className="flex items-start justify-between p-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.label}</p>
+                    <p className="mt-1 text-2xl font-bold">{s.value}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{s.desc}</p>
+                  </div>
+                  <div className="flex size-9 items-center justify-center bg-primary/10 text-primary">{s.icon}</div>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Total Requests</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{stats.totalRequests}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pending</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-yellow-600">
-                    {stats.pendingRequests}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Approved</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-green-600">
-                    {stats.approvedRequests}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Rejected</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-red-600">
-                    {stats.rejectedRequests}
-                  </p>
-                </CardContent>
-              </Card>
-            </>
+            )
           )}
         </div>
 
-        {/* Action Links */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href="/admin/users">
-            <Card className="hover:bg-muted/50 transition-colors">
-              <CardHeader>
-                <CardTitle>Manage Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Create, view, and delete users
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/admin/logs">
-            <Card className="hover:bg-muted/50 transition-colors">
-              <CardHeader>
-                <CardTitle>View Logs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  View stayback requests and filter by date
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/admin/create-user">
-            <Card className="hover:bg-muted/50 transition-colors">
-              <CardHeader>
-                <CardTitle>Create User</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Add new staff or hostel users
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-      </main>
-    </div>
+        {/* Stage breakdown */}
+        {logStats?.stats && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="text-base">Request Stages</CardTitle>
+                <CardDescription>Distribution by approval stage</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/admin/logs">Full Logs <ArrowRight className="ml-1 size-3.5" /></Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {Object.entries(logStats.stats).map(([stage, count]) => (
+                  <div key={stage} className="border p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {stage.replace(/_/g, " ")}
+                    </p>
+                    <p className="mt-1 text-xl font-bold">{count as number}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </RoleGuard>
   )
 }

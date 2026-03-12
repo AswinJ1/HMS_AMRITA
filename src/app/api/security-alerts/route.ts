@@ -10,14 +10,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    // Get stayback requests with security tracking (no security user needed)
+    // Get stayback requests with security tracking (fields are on the request itself)
     const requests = await prisma.staybackRequest.findMany({
       where: {
-        approvals: {
-          some: {
-            securityStatus: { in: ["IN", "OUT"] }
-          }
-        }
+        securityStatus: { in: ["IN", "OUT"] }
       },
       include: {
         student: {
@@ -26,13 +22,6 @@ export async function GET(request: NextRequest) {
               select: { email: true, uid: true }
             }
           }
-        },
-        approvals: {
-          where: {
-            securityStatus: { not: null }
-          },
-          orderBy: { securityCheckedAt: "desc" },
-          take: 1
         }
       },
       orderBy: { updatedAt: "desc" },
@@ -46,9 +35,9 @@ export async function GET(request: NextRequest) {
       date: request.date,
       fromTime: request.fromTime,
       toTime: request.toTime,
-      securityStatus: request.approvals[0]?.securityStatus || "PENDING",
-      securityCheckedBy: request.approvals[0]?.securityCheckedBy,
-      securityApprovedAt: request.approvals[0]?.securityCheckedAt
+      securityStatus: request.securityStatus || "PENDING",
+      securityCheckedBy: request.securityCheckedBy,
+      securityApprovedAt: request.securityCheckedAt
     }))
     
     return NextResponse.json({ requests: formattedRequests })

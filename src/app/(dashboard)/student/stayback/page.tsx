@@ -1,24 +1,20 @@
-// app/(dashboard)/student/stayback/page.tsx
+"use client"
 
-import { StaybackForm } from "@/components/forms/stayback-form"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import RoleGuard from "@/components/auth/role-guard"
+import StaybackForm from "@/components/forms/stayback-form"
 
-export default function StaybackRequestPage() {
+export default function StudentStaybackPage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <Link href="/student">
-            <Button variant="outline" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
+    <RoleGuard allowedRoles={["STUDENT"]}>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Apply for Stayback</h1>
+          <p className="text-sm text-muted-foreground">
+            Submit a new stayback request. It will be routed through Team Lead → Staff → Warden.
+          </p>
         </div>
         <StaybackForm />
       </div>
-    </div>
+    </RoleGuard>
   )
 }

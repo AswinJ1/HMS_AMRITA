@@ -8,17 +8,20 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { 
-  Loader2, 
-  Shield, 
-  Mail, 
-  User, 
-  Building2, 
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
+import {
+  Loader2,
+  Users,
+  Mail,
+  User,
+  Building2,
   Calendar,
-  Edit,
-  IdCard
+  Save,
+  IdCard,
+  Lock,
 } from "lucide-react"
-import { AvatarSelector } from "@/components/avatar-selector"
 
 interface TeamLeadProfile {
   id: string
@@ -30,21 +33,26 @@ interface TeamLeadProfile {
     id: string
     name: string
     clubName: string
-    createdAt: string
-    gender: "male" | "female"
+    department: string | null
+    gender: string
     avatarUrl?: string
+    createdAt: string
   }
 }
 
-export default function TeamleadProfilePage() {
+export default function TeamLeadProfilePage() {
   const { data: session } = useSession()
   const router = useRouter()
   const [profile, setProfile] = useState<TeamLeadProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [form, setForm] = useState({ name: "", currentPassword: "", newPassword: "" })
 
   useEffect(() => {
-    if (!session?.user || (session.user.role as string) !== "TEAM_LEAD") {
+    if (!session?.user) return
+    if ((session.user.role as string) !== "TEAM_LEAD") {
       router.push("/unauthorized")
       return
     }
@@ -54,248 +62,194 @@ export default function TeamleadProfilePage() {
   const fetchProfile = async () => {
     try {
       setIsLoading(true)
-      // Use the dedicated profile endpoint instead
-      const response = await fetch("/api/profile")
-      
-      if (response.ok) {
-        const currentUser = await response.json()
-        setProfile(currentUser)
-      } else {
-        setError("Failed to load profile")
-      }
-    } catch (error) {
-      console.error("Error fetching profile:", error)
-      setError("An error occurred while loading profile")
-    } finally {
-      setIsLoading(false)
-    }
+      const res = await fetch("/api/profile")
+      if (res.ok) {
+        const data = await res.json()
+        setProfile(data)
+        setForm({ name: data.teamLead?.name || "", currentPassword: "", newPassword: "" })
+      } else setError("Failed to load profile")
+    } catch { setError("An error occurred") }
+    finally { setIsLoading(false) }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-    const handleAvatarSave = async (avatarUrl: string) => {
+  const handleSave = async () => {
     try {
-      const response = await fetch("/api/profile/avatar", {
+      setIsSaving(true)
+      const res = await fetch("/api/profile", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ avatarUrl }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          ...(form.newPassword && { currentPassword: form.currentPassword, newPassword: form.newPassword }),
+        }),
       })
-
-      if (response.ok) {
-        // Refresh profile data
+      if (res.ok) {
+        toast.success("Profile updated")
+        setEditMode(false)
         await fetchProfile()
       } else {
-        throw new Error("Failed to update avatar")
+        const data = await res.json()
+        toast.error(data.error || "Update failed")
       }
-    } catch (error) {
-      console.error("Error updating avatar:", error)
-      throw error
-    }
+    } catch { toast.error("An error occurred") }
+    finally { setIsSaving(false) }
   }
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+
+  const getInitials = (name: string) =>
+    name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   if (error || !profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center py-24">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
-            <p className="text-center text-red-600">{error || "Profile not found"}</p>
+            <p className="text-center text-destructive">{error || "Profile not found"}</p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
+  const tl = profile.teamLead
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Shield className="h-8 w-8 text-blue-600" />
-              My Profile
-            </h1>
-            <p className="text-gray-600 mt-2">View and manage your  profile</p>
-          </div>
-          <Button
-            onClick={() => router.push("/team-lead/edit_profile")}
-            className="flex items-center gap-2"
-          >
-            <Edit className="h-4 w-4" />
-            Edit Profile
-          </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Profile</h1>
+          <p className="text-sm text-muted-foreground">View and manage your team lead profile</p>
         </div>
+        {!editMode ? (
+          <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>Edit Profile</Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setEditMode(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 size-3 animate-spin" />}
+              <Save className="mr-1.5 size-3" /> Save
+            </Button>
+          </div>
+        )}
+      </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Profile Card */}
-          <Card className="md:col-span-1">
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center">
-                  <AvatarSelector
-                  currentAvatar={profile.teamLead.avatarUrl}
-                  gender={profile.teamLead.gender}
-                  onSave={handleAvatarSave}
-                  fallbackInitials={getInitials(profile.teamLead.name)}
-                  />
-                
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                  {profile.teamLead.name}
-                </h2>
-                
-                <Badge variant="secondary" className="mb-4">
-                  <Shield className="h-3 w-3 mr-1" />
-                  Team Lead
-                </Badge>
-
-                <div className="w-full mt-4 space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Building2 className="h-4 w-4" />
-                    <span>{profile.teamLead.clubName}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <IdCard className="h-4 w-4" />
-                    <span>{profile.uid}</span>
-                  </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center">
+              <Avatar className="mb-4 size-20">
+                <AvatarFallback className="bg-primary text-lg font-bold text-primary-foreground">
+                  {getInitials(tl.name)}
+                </AvatarFallback>
+              </Avatar>
+              <h2 className="text-xl font-semibold">{tl.name}</h2>
+              <Badge className="mt-2" variant="secondary">
+                <Users className="mr-1 size-3" />
+                Team Lead
+              </Badge>
+              <Separator className="my-4 w-full" />
+              <div className="w-full space-y-3 text-left text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <IdCard className="size-4 shrink-0" />
+                  <span>{profile.uid}</span>
                 </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Mail className="size-4 shrink-0" />
+                  <span className="truncate">{profile.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Users className="size-4 shrink-0" />
+                  <span>{tl.clubName}</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Details</CardTitle>
+              <CardDescription>Your team lead information</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InfoField icon={<User className="size-4" />} label="Full Name" value={tl.name} />
+                <InfoField icon={<Users className="size-4" />} label="Club" value={tl.clubName} />
+                <InfoField icon={<Building2 className="size-4" />} label="Department" value={tl.department || "—"} />
+                <InfoField icon={<User className="size-4" />} label="Gender" value={tl.gender} />
               </div>
             </CardContent>
           </Card>
 
-          {/* Details Cards */}
-          <div className="md:col-span-2 space-y-6">
-            {/* Contact Information */}
+          {editMode && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5" />
-                  Contact Information
-                </CardTitle>
-                <CardDescription>Your contact details and identification</CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Edit Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Email Address</label>
-                    <p className="text-gray-900 mt-1">{profile.email}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">UID</label>
-                    <p className="text-gray-900 mt-1">{profile.uid}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Full Name</label>
-                    <p className="text-gray-900 mt-1">{profile.teamLead.name}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Club Name</label>
-                    <p className="text-gray-900 mt-1">{profile.teamLead.clubName}</p>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium flex items-center gap-1.5"><Lock className="size-3.5" /> Change Password</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="curpass">Current Password</Label>
+                      <Input id="curpass" type="password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newpass">New Password</Label>
+                      <Input id="newpass" type="password" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} />
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
+          )}
 
-            {/* Account Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Account Information
-                </CardTitle>
-                <CardDescription>Your account details and status</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Account Type</label>
-                    <div className="mt-1">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        {profile.role}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Account Status</label>
-                    <div className="mt-1">
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Active
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Member Since
-                    </label>
-                    <p className="text-gray-900 mt-1">{formatDate(profile.createdAt)}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Profile Created</label>
-                    <p className="text-gray-900 mt-1">{formatDate(profile.teamLead.createdAt)}</p>
-                  </div>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Account</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InfoField icon={<Calendar className="size-4" />} label="Member Since" value={formatDate(profile.createdAt)} />
+                <InfoField icon={<Calendar className="size-4" />} label="Profile Created" value={formatDate(tl.createdAt)} />
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">Status</p>
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400">Active</Badge>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            {/* <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Manage your account settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => router.push("/staff/edit_profile")}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile Information
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => router.push("/security/monitoring")}
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  View Security Monitoring
-                </Button>
-              </CardContent>
-            </Card> */}
-          </div>
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">Role</p>
+                  <Badge variant="outline">{profile.role.replace("_", " ")}</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+    </div>
+  )
+}
+
+function InfoField({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div>
+      <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">{icon}{label}</p>
+      <p className="text-sm font-medium">{value || "—"}</p>
     </div>
   )
 }
