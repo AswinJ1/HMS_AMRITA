@@ -37,7 +37,6 @@ interface SecurityProfile {
     department: string | null
     gender: string
     createdAt: string
-    gender: "male" | "female"
     avatarUrl?: string
   }
 }
