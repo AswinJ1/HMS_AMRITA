@@ -42,6 +42,25 @@ export function LoginForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+
+    // Client-side validation
+    if (!role) {
+      setError("Please select a role before signing in.")
+      return
+    }
+    if (needsEmail && !email.trim()) {
+      setError("Email is required for your role.")
+      return
+    }
+    if (needsUid && !uid.trim()) {
+      setError("UID is required for your role.")
+      return
+    }
+    if (!password) {
+      setError("Password is required.")
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -54,13 +73,22 @@ export function LoginForm() {
       })
 
       if (result?.error) {
-        setError(result.error)
+        // Map NextAuth error codes to user-friendly messages
+        const errorMessages: Record<string, string> = {
+          CredentialsSignin: "Invalid credentials. Please check your email/UID and password.",
+          "Invalid credentials": "No account found with the provided email or UID.",
+          "Invalid role": "Your account role does not match the selected role.",
+          "Invalid password": "Incorrect password. Please try again.",
+          "Email is required": "Email is required for your role.",
+          "UID is required": "UID is required for your role.",
+        }
+        setError(errorMessages[result.error] || "Login failed. Please check your credentials and try again.")
       } else {
         router.push(roleRedirects[role] || "/")
         router.refresh()
       }
     } catch {
-      setError("An unexpected error occurred")
+      setError("An unexpected error occurred. Please try again later.")
     } finally {
       setLoading(false)
     }

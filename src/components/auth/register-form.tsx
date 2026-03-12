@@ -16,6 +16,7 @@ export function RegisterForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [step, setStep] = useState(1)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   // Dropdown options fetched from DB
   const [clubOptions, setClubOptions] = useState<string[]>([])
@@ -46,23 +47,50 @@ export function RegisterForm() {
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
+    // Clear the field error when user edits
+    setFieldErrors((prev) => { const n = { ...prev }; delete n[field]; return n })
+  }
+
+  function validateStep1(): boolean {
+    const errs: Record<string, string> = {}
+    if (form.name.trim().length < 2) errs.name = "Name must be at least 2 characters"
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Enter a valid email address"
+    if (!/^[A-Za-z0-9.]{5,25}$/.test(form.uid)) errs.uid = "UID must be 5–25 characters (letters, numbers, and dots)"
+    if (form.password.length < 6) errs.password = "Password must be at least 6 characters"
+    else if (!/[A-Z]/.test(form.password)) errs.password = "Password must contain at least one uppercase letter"
+    else if (!/[0-9]/.test(form.password)) errs.password = "Password must contain at least one number"
+    if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match"
+    setFieldErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
+  function validateStep2(): boolean {
+    const errs: Record<string, string> = {}
+    if (!form.clubName) errs.clubName = "Please select a club"
+    if (!form.hostelName) errs.hostelName = "Please select a hostel"
+    if (!form.roomNo.trim()) errs.roomNo = "Room number is required"
+    if (!/^[0-9]{10}$/.test(form.phoneNumber)) errs.phoneNumber = "Phone number must be exactly 10 digits"
+    setFieldErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
+  function goToStep2(e: React.FormEvent) {
+    e.preventDefault()
+    if (validateStep1()) setStep(2)
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
 
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match")
-      return
-    }
+    if (!validateStep2()) return
 
     setLoading(true)
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, uid: form.uid.toUpperCase() }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Registration failed")
@@ -89,7 +117,7 @@ export function RegisterForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-3xl">
         {/* Logo & Branding */}
         <div className="mb-8 flex flex-col items-center text-center">
           <Image
@@ -138,43 +166,66 @@ export function RegisterForm() {
             </Alert>
           )}
 
-          <form onSubmit={step === 2 ? onSubmit : (e) => { e.preventDefault(); setStep(2) }} className="space-y-5">
-            {step === 1 && step1Fields.map((f) => (
-              <div key={f.id} className="space-y-2">
-                <Label htmlFor={f.id} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {f.label}
-                </Label>
-                <Input
-                  id={f.id}
-                  type={f.type}
-                  placeholder={f.placeholder}
-                  value={(form as any)[f.id]}
-                  onChange={(e) => update(f.id, e.target.value)}
-                  required
-                  className="h-11 text-sm"
-                />
+          <form onSubmit={step === 2 ? onSubmit : goToStep2} className="space-y-5">
+            {step === 1 && (
+              <div className="grid gap-5 sm:grid-cols-2">
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full Name</Label>
+                  <Input id="name" type="text" placeholder="John Doe" value={form.name} onChange={(e) => update("name", e.target.value)} required className={`h-11 text-sm ${fieldErrors.name ? "border-destructive" : ""}`} />
+                  {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
+                </div>
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email Address</Label>
+                  <Input id="email" type="email" placeholder="you@amrita.edu" value={form.email} onChange={(e) => update("email", e.target.value)} required className={`h-11 text-sm ${fieldErrors.email ? "border-destructive" : ""}`} />
+                  {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
+                </div>
+                {/* UID — full width */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="uid" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">University ID</Label>
+                  <Input id="uid" type="text" placeholder="AM.EN.U4XXX" value={form.uid} onChange={(e) => update("uid", e.target.value)} required className={`h-11 text-sm ${fieldErrors.uid ? "border-destructive" : ""}`} />
+                  {fieldErrors.uid && <p className="text-xs text-destructive">{fieldErrors.uid}</p>}
+                </div>
+                {/* Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Password</Label>
+                  <Input id="password" type="password" placeholder="Min 6 characters" value={form.password} onChange={(e) => update("password", e.target.value)} required className={`h-11 text-sm ${fieldErrors.password ? "border-destructive" : ""}`} />
+                  {fieldErrors.password && <p className="text-xs text-destructive">{fieldErrors.password}</p>}
+                </div>
+                {/* Confirm Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Confirm Password</Label>
+                  <Input id="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} required className={`h-11 text-sm ${fieldErrors.confirmPassword ? "border-destructive" : ""}`} />
+                  {fieldErrors.confirmPassword && <p className="text-xs text-destructive">{fieldErrors.confirmPassword}</p>}
+                </div>
               </div>
-            ))}
+            )}
 
             {step === 2 && (
-              <>
+              <div className="grid gap-5 sm:grid-cols-2">
                 {/* Club Name Dropdown */}
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Club / Team
                   </Label>
-                  <Select value={form.clubName} onValueChange={(v) => update("clubName", v)}>
-                    <SelectTrigger className="h-11 text-sm">
-                      <SelectValue placeholder="Select your club" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clubOptions.map((club) => (
-                        <SelectItem key={club} value={club}>
-                          {club}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {clubOptions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground border border-dashed px-3 py-2.5 rounded">No clubs available yet. Contact the admin.</p>
+                  ) : (
+                    <Select value={form.clubName} onValueChange={(v) => update("clubName", v)}>
+                      <SelectTrigger className={`h-11 text-sm ${fieldErrors.clubName ? "border-destructive" : ""}`}>
+                        <SelectValue placeholder="Select your club" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clubOptions.map((club) => (
+                          <SelectItem key={club} value={club}>
+                            {club}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {fieldErrors.clubName && <p className="text-xs text-destructive">{fieldErrors.clubName}</p>}
                 </div>
 
                 {/* Hostel Name Dropdown */}
@@ -182,18 +233,24 @@ export function RegisterForm() {
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Hostel
                   </Label>
-                  <Select value={form.hostelName} onValueChange={(v) => update("hostelName", v)}>
-                    <SelectTrigger className="h-11 text-sm">
-                      <SelectValue placeholder="Select your hostel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hostelOptions.map((h) => (
-                        <SelectItem key={h} value={h}>
-                          {h}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {hostelOptions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground border border-dashed px-3 py-2.5 rounded">No hostels available yet. Contact the admin.</p>
+                  ) : (
+                    <Select value={form.hostelName} onValueChange={(v) => update("hostelName", v)}>
+                      <SelectTrigger className={`h-11 text-sm ${fieldErrors.hostelName ? "border-destructive" : ""}`}>
+                        <SelectValue placeholder="Select your hostel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {hostelOptions.map((h) => (
+                          <SelectItem key={h} value={h}>
+                            {h}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {fieldErrors.hostelName && <p className="text-xs text-destructive">{fieldErrors.hostelName}</p>}
+                  <p className="text-[11px] text-muted-foreground">Choose carefully — only an admin can change this later.</p>
                 </div>
 
                 {/* Room & Phone — regular inputs */}
@@ -209,11 +266,12 @@ export function RegisterForm() {
                       value={(form as any)[f.id]}
                       onChange={(e) => update(f.id, e.target.value)}
                       required
-                      className="h-11 text-sm"
+                      className={`h-11 text-sm ${fieldErrors[f.id] ? "border-destructive" : ""}`}
                     />
+                    {fieldErrors[f.id] && <p className="text-xs text-destructive">{fieldErrors[f.id]}</p>}
                   </div>
                 ))}
-              </>
+              </div>
             )}
 
             <div className="flex gap-3 pt-1">
