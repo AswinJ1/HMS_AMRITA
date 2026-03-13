@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ClipboardCheck, FileText, Clock, CheckCircle2, ArrowRight } from "lucide-react"
 import RoleGuard from "@/components/auth/role-guard"
+import DashboardCharts from "@/components/dashboard-charts"
 import { format } from "date-fns"
 
 export default function StaffDashboard() {
@@ -76,7 +77,7 @@ export default function StaffDashboard() {
           </CardHeader>
           <CardContent className="px-4 pb-4">
             {loading ? (
-              <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-12" />)}</div>
+              <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12" />)}</div>
             ) : pending === 0 ? (
               <div className="py-8 text-center">
                 <CheckCircle2 className="mx-auto size-8 text-muted-foreground/30" />
@@ -105,6 +106,9 @@ export default function StaffDashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Analytics Charts */}
+        <DashboardCharts compact />
       </div>
     </RoleGuard>
   )

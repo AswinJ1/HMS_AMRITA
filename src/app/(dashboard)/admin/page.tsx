@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Users, Activity, Shield, FileText, ArrowRight } from "lucide-react"
 import RoleGuard from "@/components/auth/role-guard"
+import DashboardCharts from "@/components/dashboard-charts"
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
@@ -100,6 +101,9 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Analytics Charts */}
+        <DashboardCharts />
       </div>
     </RoleGuard>
   )

@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Eye, FileText } from "lucide-react"
+import { Eye, FileText, Clock, CheckCircle2, XCircle, Shield, ArrowRight } from "lucide-react"
+import Pagination from "@/components/pagination"
 
 const stageBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   TEAM_LEAD_PENDING: { label: "TL Pending", variant: "secondary" },
@@ -38,11 +39,17 @@ interface StaybackRequest {
   status: string
   stage: string
   createdAt: string
+  securityStatus?: string | null
+  securityCheckedAt?: string | null
+  securityCheckedBy?: string | null
   approvals: Approval[]
 }
 
+const PAGE_SIZE = 10
+
 export default function RequestsTable({ requests }: { requests: StaybackRequest[] }) {
   const [selected, setSelected] = useState<StaybackRequest | null>(null)
+  const [page, setPage] = useState(1)
 
   if (!requests.length) {
     return (
@@ -55,6 +62,9 @@ export default function RequestsTable({ requests }: { requests: StaybackRequest[
       </Card>
     )
   }
+
+  const totalPages = Math.ceil(requests.length / PAGE_SIZE)
+  const paginatedRequests = requests.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <>
@@ -75,7 +85,7 @@ export default function RequestsTable({ requests }: { requests: StaybackRequest[
               </TableRow>
             </TableHeader>
             <TableBody>
-              {requests.map((req) => {
+              {paginatedRequests.map((req) => {
                 const badge = stageBadge[req.stage] || { label: req.stage, variant: "outline" as const }
                 return (
                   <TableRow key={req.id} className="group">
@@ -92,75 +102,179 @@ export default function RequestsTable({ requests }: { requests: StaybackRequest[
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" onClick={() => setSelected(req)}>
-                            <Eye className="mr-1 size-3.5" /> View
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>Request Details</DialogTitle>
-                            <DialogDescription>#{req.id.slice(0, 8)}</DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-3 text-sm">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Club</p>
-                                <p className="font-medium">{req.clubName}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Date</p>
-                                <p className="font-medium">{format(new Date(req.date), "dd MMM yyyy")}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Time</p>
-                                <p className="font-medium">{req.fromTime} – {req.toTime}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Stage</p>
-                                <Badge variant={badge.variant} className="text-[10px]">{badge.label}</Badge>
-                              </div>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Remarks</p>
-                              <p className="text-muted-foreground">{req.remarks}</p>
-                            </div>
-                            <Separator />
-                            <div>
-                              <p className="mb-2 text-[10px] font-semibold uppercase text-muted-foreground">Approval Chain</p>
-                              <div className="space-y-2">
-                                {req.approvals.map((a) => {
-                                  const name = a.teamLead?.name || a.staff?.name || a.hostel?.name || "Unknown"
-                                  const roleLabel = a.teamLead ? "Team Lead" : a.staff ? "Staff" : "Warden"
-                                  return (
-                                    <div key={a.id} className="flex items-center justify-between border p-2">
-                                      <div>
-                                        <p className="text-xs font-medium">{name}</p>
-                                        <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
-                                      </div>
-                                      <Badge
-                                        variant={a.status === "APPROVED" ? "default" : a.status === "REJECTED" ? "destructive" : "secondary"}
-                                        className="text-[10px]"
-                                      >
-                                        {a.status}
-                                      </Badge>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <Button variant="ghost" size="sm" onClick={() => setSelected(req)}>
+                        <Eye className="mr-1 size-3.5" /> View
+                      </Button>
                     </TableCell>
                   </TableRow>
                 )
               })}
             </TableBody>
           </Table>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={requests.length}
+            pageSize={PAGE_SIZE}
+          />
         </CardContent>
       </Card>
+
+      {/* Redesigned Detail Dialog */}
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-w-lg">
+          {selected && (() => {
+            const badge = stageBadge[selected.stage] || { label: selected.stage, variant: "outline" as const }
+            return (
+              <>
+                {/* Header with gradient accent */}
+                <div className="rounded-t-lg bg-gradient-to-r from-primary/10 via-primary/5 to-transparent -mx-6 -mt-6 px-6 pt-6 pb-4 mb-2">
+                  <DialogHeader>
+                    <div className="flex items-center justify-between">
+                      <DialogTitle className="text-lg">Request Details</DialogTitle>
+                      <Badge variant={badge.variant} className="text-[10px] font-semibold">{badge.label}</Badge>
+                    </div>
+                    <DialogDescription className="font-mono text-xs">#{selected.id.slice(0, 8)}</DialogDescription>
+                  </DialogHeader>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Request Info Section */}
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <FileText className="size-3" /> Request Information
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 bg-muted/30 p-3 rounded-md border">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Club / Team</p>
+                        <p className="text-sm font-medium">{selected.clubName}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Date</p>
+                        <p className="text-sm font-medium">{format(new Date(selected.date), "dd MMM yyyy")}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Time Window</p>
+                        <p className="text-sm font-medium">{selected.fromTime} – {selected.toTime}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Submitted</p>
+                        <p className="text-sm font-medium">{format(new Date(selected.createdAt), "dd MMM yyyy")}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Remarks Section */}
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Remarks</p>
+                    <div className="border-l-2 border-primary/30 pl-3 py-1">
+                      <p className="text-sm text-muted-foreground italic">{selected.remarks}</p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Approval Timeline */}
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+                      <ArrowRight className="size-3" /> Approval Timeline
+                    </p>
+                    <div className="space-y-0">
+                      {selected.approvals.map((a, index) => {
+                        const name = a.teamLead?.name || a.staff?.name || a.hostel?.name || "Unknown"
+                        const roleLabel = a.teamLead ? "Team Lead" : a.staff ? "Staff" : "Warden"
+                        const isApproved = a.status === "APPROVED"
+                        const isRejected = a.status === "REJECTED"
+                        const isPending = a.status === "PENDING"
+
+                        return (
+                          <div key={a.id} className="flex gap-3">
+                            {/* Timeline line */}
+                            <div className="flex flex-col items-center">
+                              <div className={`size-6 rounded-full flex items-center justify-center shrink-0 ${isApproved ? "bg-green-500/20 text-green-600" :
+                                  isRejected ? "bg-red-500/20 text-red-600" :
+                                    "bg-muted text-muted-foreground"
+                                }`}>
+                                {isApproved ? <CheckCircle2 className="size-3.5" /> :
+                                  isRejected ? <XCircle className="size-3.5" /> :
+                                    <Clock className="size-3.5" />}
+                              </div>
+                              {index < selected.approvals.length - 1 && (
+                                <div className={`w-px flex-1 min-h-[20px] ${isApproved ? "bg-green-500/30" : "bg-border"}`} />
+                              )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="pb-3 flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium">{name}</p>
+                                  <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
+                                </div>
+                                <Badge
+                                  variant={isApproved ? "default" : isRejected ? "destructive" : "secondary"}
+                                  className="text-[10px]"
+                                >
+                                  {a.status}
+                                </Badge>
+                              </div>
+                              {a.approvedAt && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                  <Clock className="size-2.5" />
+                                  {format(new Date(a.approvedAt), "dd MMM yyyy, HH:mm")}
+                                </p>
+                              )}
+                              {a.comments && (
+                                <p className="text-xs text-muted-foreground mt-1 border-l-2 border-muted pl-2 italic">
+                                  {a.comments}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Security Status */}
+                  {(selected.securityStatus || selected.stage === "COMPLETED") && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                          <Shield className="size-3" /> Security Check
+                        </p>
+                        <div className="flex items-center justify-between bg-muted/30 p-3 rounded-md border">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {selected.securityStatus === "IN" ? "Checked In" :
+                                selected.securityStatus === "OUT" ? "Checked Out" : "Not Checked Yet"}
+                            </p>
+                            {selected.securityCheckedAt && (
+                              <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Clock className="size-2.5" />
+                                {format(new Date(selected.securityCheckedAt), "dd MMM yyyy, HH:mm")}
+                                {selected.securityCheckedBy && ` · by ${selected.securityCheckedBy}`}
+                              </p>
+                            )}
+                          </div>
+                          <Badge
+                            variant={selected.securityStatus === "IN" ? "default" : selected.securityStatus === "OUT" ? "secondary" : "outline"}
+                            className="text-[10px] font-semibold"
+                          >
+                            {selected.securityStatus || "PENDING"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
