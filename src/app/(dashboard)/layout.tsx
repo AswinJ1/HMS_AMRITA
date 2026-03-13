@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -77,6 +78,7 @@ const navItems: NavItem[] = [
 
   { title: "Dashboard", href: "/security", icon: <LayoutDashboard className="size-4" />, roles: ["SECURITY"] },
   { title: "Monitoring", href: "/security/monitoring", icon: <Shield className="size-4" />, roles: ["SECURITY"] },
+  { title: "Team Details", href: "/security/team-details", icon: <Users className="size-4" />, roles: ["SECURITY"] },
 
   { title: "Dashboard", href: "/admin", icon: <LayoutDashboard className="size-4" />, roles: ["ADMIN"] },
   { title: "Users", href: "/admin/users", icon: <Users className="size-4" />, roles: ["ADMIN"] },
@@ -91,8 +93,8 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
     <TooltipProvider delayDuration={0}>
       <div className="flex h-full flex-col">
         {/* Brand */}
-        <div className="flex h-14 items-center border-b border-sidebar-border px-4">
-          <Building2 className="size-5 shrink-0 text-sidebar-primary" />
+        <div className="flex h-16 items-center border-b border-sidebar-border px-4">
+          <Image src="/logo.png" alt="HMS Logo" width={32} height={32} className="shrink-0 rounded" />
           {!collapsed && (
             <span className="ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground">
               HMS Amrita
@@ -114,11 +116,10 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
                 const link = (
                   <Link key={item.href} href={item.href}>
                     <div
-                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all ${
-                        active
-                          ? "bg-sidebar-accent text-sidebar-foreground"
-                          : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/80"
-                      } ${collapsed ? "justify-center px-2" : ""}`}
+                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all ${active
+                        ? "bg-sidebar-accent text-sidebar-foreground"
+                        : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/80"
+                        } ${collapsed ? "justify-center px-2" : ""}`}
                     >
                       <span className={active ? "text-sidebar-primary" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/60"}>{item.icon}</span>
                       {!collapsed && <span>{item.title}</span>}
@@ -155,9 +156,8 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
                 const link = (
                   <Link key={item.href} href={item.href}>
                     <div
-                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all ${
-                        active ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/80"
-                      } ${collapsed ? "justify-center px-2" : ""}`}
+                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all ${active ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/80"
+                        } ${collapsed ? "justify-center px-2" : ""}`}
                     >
                       <span className={active ? "text-sidebar-primary" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/60"}>{item.icon}</span>
                       {!collapsed && <span>{item.title}</span>}
@@ -180,9 +180,8 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
                 const btn = (
                   <button
                     onClick={() => signOut({ callbackUrl: "/login" })}
-                    className={`group flex w-full items-center gap-3 px-2.5 py-2 text-[13px] font-medium text-destructive/70 transition-all hover:bg-destructive/10 hover:text-destructive ${
-                      collapsed ? "justify-center px-2" : ""
-                    }`}
+                    className={`group flex w-full items-center gap-3 px-2.5 py-2 text-[13px] font-medium text-destructive/70 transition-all hover:bg-destructive/10 hover:text-destructive ${collapsed ? "justify-center px-2" : ""
+                      }`}
                   >
                     <LogOut className="size-4" />
                     {!collapsed && <span>Sign out</span>}
@@ -225,9 +224,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex h-screen bg-background">
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-200 ${
-          collapsed ? "w-[60px]" : "w-[240px]"
-        }`}
+        className={`hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-200 ${collapsed ? "w-[60px]" : "w-[240px]"
+          }`}
       >
         <SidebarContent collapsed={collapsed} role={role} pathname={pathname} profileHref={profileHref} />
 
@@ -245,7 +243,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 lg:px-6">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b bg-card px-4 lg:px-6">
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <Sheet>
@@ -259,8 +257,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SheetContent>
             </Sheet>
 
-            <div className="hidden sm:block">
-              <h1 className="text-sm font-semibold tracking-tight text-foreground">
+            <div className="hidden sm:flex items-center gap-2.5">
+              <Image src="/logo.png" alt="HMS Logo" width={30} height={30} className="rounded" />
+              <h1 className="text-base font-bold tracking-tight text-foreground">
                 Hostel Management System
               </h1>
             </div>
