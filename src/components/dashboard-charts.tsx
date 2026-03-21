@@ -70,7 +70,7 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
     xAxis: {
       type: "category" as const,
       boundaryGap: false,
-      data: data.dailyTrend.map((d) => d.date),
+      data: (data.dailyTrend || []).map((d: any) => d.date),
       axisLabel: { fontSize: 11, rotate: days > 30 ? 45 : 0 },
       axisLine: { lineStyle: { color: "#e2e8f0" } },
     },
@@ -85,7 +85,7 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         name: "Requests",
         type: "line",
         smooth: true,
-        data: data.dailyTrend.map((d) => d.count),
+        data: (data.dailyTrend || []).map((d: any) => d.count),
         areaStyle: {
           color: {
             type: "linear",

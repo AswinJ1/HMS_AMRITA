@@ -96,7 +96,7 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
         <div className="flex h-16 items-center border-b border-sidebar-border px-4">
           <Image src="/logo.png" alt="HMS Logo" width={32} height={32} className="shrink-0 rounded" />
           {!collapsed && (
-            <span className="ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground">
+            <span className="ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground/80">
               HMS Amrita
             </span>
           )}
@@ -106,7 +106,7 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
         <ScrollArea className="flex-1 py-3">
           <div className="px-3">
             {!collapsed && (
-              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/80 ">
                 Navigation
               </p>
             )}
@@ -116,12 +116,12 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
                 const link = (
                   <Link key={item.href} href={item.href}>
                     <div
-                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all ${active
-                        ? "bg-sidebar-accent text-sidebar-foreground"
-                        : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/80"
+                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all  ${active
+                        ? " text-sidebar-foreground/80"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90"
                         } ${collapsed ? "justify-center px-2" : ""}`}
                     >
-                      <span className={active ? "text-sidebar-primary" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/60"}>{item.icon}</span>
+                      <span className={active ? "text-sidebar-primary" : "text-sidebar-foreground/80 group-hover:text-sidebar-foreground/60"}>{item.icon}</span>
                       {!collapsed && <span>{item.title}</span>}
                     </div>
                   </Link>
@@ -144,19 +144,19 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
           <div className="mt-4 px-3">
             <Separator className="mb-3 bg-sidebar-border" />
             {!collapsed && (
-              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/80">
                 Account
               </p>
             )}
             <nav className="flex flex-col gap-0.5">
               {[
-                { title: "Profile", href: profileHref, icon: <UserCircle className="size-4" /> },
+                { title: "Profile", href: profileHref, icon: <UserCircle className="size-4 text-black" /> },
               ].map((item) => {
                 const active = pathname === item.href
                 const link = (
                   <Link key={item.href} href={item.href}>
                     <div
-                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all ${active ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/80"
+                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all ${active ? "bg-sidebar-accent text-sidebar-foreground/80" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90"
                         } ${collapsed ? "justify-center px-2" : ""}`}
                     >
                       <span className={active ? "text-sidebar-primary" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/60"}>{item.icon}</span>
@@ -180,7 +180,7 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
                 const btn = (
                   <button
                     onClick={() => signOut({ callbackUrl: "/login" })}
-                    className={`group flex w-full items-center gap-3 px-2.5 py-2 text-[13px] font-medium text-destructive/70 transition-all hover:bg-destructive/10 hover:text-destructive ${collapsed ? "justify-center px-2" : ""
+                    className={`group flex w-full items-center gap-3 px-2.5 py-2 text-[13px] font-medium text-destructive/100 transition-all hover:bg-destructive/10 hover:text-destructive ${collapsed ? "justify-center px-2" : ""
                       }`}
                   >
                     <LogOut className="size-4" />
