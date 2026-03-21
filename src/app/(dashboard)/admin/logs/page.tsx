@@ -85,12 +85,12 @@ export default function AdminLogsPage() {
             <p className="text-sm text-muted-foreground">Complete audit trail of all stayback requests.</p>
           </div>
           <Button size="sm" variant="outline" onClick={handleExport}>
-            <Download className="mr-2 size-4" /> Export CSV
+            <Download className="mr-2 size-4" /> Export Data
           </Button>
         </div>
 
         {/* Stage stats */}
-        {Object.keys(stats).length > 0 && (
+        {/* {Object.keys(stats).length > 0 && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {Object.entries(stats).map(([stage, count]) => (
               <div key={stage} className="border bg-card p-3">
@@ -101,10 +101,10 @@ export default function AdminLogsPage() {
               </div>
             ))}
           </div>
-        )}
+        )} */}
 
         {/* Area Chart */}
-        <DashboardCharts compact />
+        {/* <DashboardCharts compact /> */}
 
         {/* Filters */}
         <Card>

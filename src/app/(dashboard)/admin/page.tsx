@@ -34,10 +34,10 @@ export default function AdminDashboard() {
   const totalRequests = logStats?.requests?.length ?? 0
 
   const stats = [
-    { label: "Total Users", value: totalUsers, icon: <Users className="size-4" />, desc: "All registered accounts" },
-    { label: "Staff & Wardens", value: staffCount, icon: <Shield className="size-4" />, desc: "Staff + Security + Warden" },
-    { label: "Students & TLs", value: studentCount, icon: <FileText className="size-4" />, desc: "Students and Team Leads" },
-    { label: "Total Requests", value: totalRequests, icon: <Activity className="size-4" />, desc: "All stayback requests" },
+    { label: "Total Users", value: totalUsers,  desc: "All registered accounts" },
+    { label: "Staff & Wardens", value: staffCount, desc: "Staff + Security + Warden" },
+    { label: "Students & TLs", value: studentCount, desc: "Students and Team Leads" },
+    { label: "Total Requests", value: totalRequests, desc: "All stayback requests" },
   ]
 
   return (
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
                     <p className="mt-1 text-2xl font-bold">{s.value}</p>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">{s.desc}</p>
                   </div>
-                  <div className="flex size-9 items-center justify-center bg-primary/10 text-primary">{s.icon}</div>
+                  {/* <div className="flex size-9 items-center justify-center bg-primary/10 text-primary">{s.icon}</div> */}
                 </CardContent>
               </Card>
             )

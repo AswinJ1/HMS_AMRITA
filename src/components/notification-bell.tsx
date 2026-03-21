@@ -128,7 +128,7 @@ export function NotificationBell({ role }: { role: string }) {
           )}
         </div>
 
-        <ScrollArea className="max-h-80">
+        <div className="max-h-[300px] overflow-y-auto overflow-x-hidden">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Bell className="mb-2 size-8 text-muted-foreground/40" />
@@ -178,22 +178,25 @@ export function NotificationBell({ role }: { role: string }) {
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         {notifications.length > 0 && (
-          <>
+          <div className="bg-popover relative z-10">
             <Separator />
-            <div className="p-2">
+            <div className="p-2 flex gap-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className="w-full text-xs"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false)
+                  window.location.href = `/${role.toLowerCase().replace("_", "-")}/notification`
+                }}
               >
-                Close
+                View all notifications
               </Button>
             </div>
-          </>
+          </div>
         )}
       </PopoverContent>
     </Popover>
