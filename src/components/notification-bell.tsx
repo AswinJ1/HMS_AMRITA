@@ -51,7 +51,9 @@ export function NotificationBell({ role }: { role: string }) {
   const fetchNotifications = useCallback(async () => {
     try {
       // Only fetch unread notifications for the bell
-      const response = await fetch("/api/notifications?filter=unread")
+      const response = await fetch("/api/notifications?filter=unread", {
+        headers: { "Cache-Control": "no-cache" },
+      })
       if (response.ok) {
         const data = await response.json()
         setNotifications(data)
