@@ -95,7 +95,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center  px-4 py-10">
       <div className="w-full max-w-lg">
         {/* Logo & Branding */}
         <div className="mb-8 flex flex-col items-center text-center">
@@ -107,7 +107,7 @@ export function LoginForm() {
             className="mb-4"
             priority
           />
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl  tracking-tight sm:text-3xl">
             HMS Amrita
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -118,7 +118,7 @@ export function LoginForm() {
         {/* Card */}
         <div className="border bg-card p-8 shadow-sm sm:p-10">
           <div className="mb-6">
-            <h2 className="text-xl font-bold tracking-tight">Sign in to your account</h2>
+            <h2 className="text-xl  tracking-tight">Sign in to your account</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Select your role and enter your credentials
             </p>

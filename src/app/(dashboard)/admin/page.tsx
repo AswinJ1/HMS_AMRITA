@@ -9,7 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Users, Activity, Shield, FileText, ArrowRight } from "lucide-react"
 import RoleGuard from "@/components/auth/role-guard"
 import DashboardCharts from "@/components/dashboard-charts"
-
 export default function AdminDashboard() {
   const { data: session } = useSession()
   const [users, setUsers] = useState<any[]>([])
@@ -45,12 +44,12 @@ export default function AdminDashboard() {
       <div className="space-y-6">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Admin Dashboard</h1>
+            <h1 className="text-xl ">Welcome back, Admin !</h1>
             <p className="text-sm text-muted-foreground">System overview and management</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/logs"><Activity className="mr-2 size-4" /> Logs</Link>
+              <Link href="/admin/logs"><Activity className="mr-2 size-4" /> Logs / Export Data</Link>
             </Button>
             <Button size="sm" asChild>
               <Link href="/admin/users"><Users className="mr-2 size-4" /> Manage Users</Link>

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { createNotification } from "@/lib/create-notification"
 import { staybackRequestSchema } from "@/lib/validations/stayback"
 import { z } from "zod"
 
@@ -143,6 +144,11 @@ export async function POST(request: NextRequest) {
         ),
       ])
 
+      const staffUser = await retryQuery(() => prisma.staff.findUnique({ where: { id: staffId }, select: { userId: true } }))
+      if (staffUser) {
+        await createNotification({ userId: staffUser.userId, title: "Staff Approval Needed", message: `Stayback for ${validatedData.clubName} awaits your approval`, type: "info", sourceId: staybackRequest.id })
+      }
+
       return NextResponse.json(
         { message: "Team lead stayback request created", id: staybackRequest.id },
         { status: 201 }
@@ -195,6 +201,11 @@ export async function POST(request: NextRequest) {
           })
         ),
       ])
+
+      const tlUser = await retryQuery(() => prisma.teamLead.findUnique({ where: { id: teamLeadId }, select: { userId: true } }))
+      if (tlUser) {
+        await createNotification({ userId: tlUser.userId, title: "Pending Approval", message: `Stayback request for ${validatedData.clubName} needs your review`, type: "info", sourceId: staybackRequest.id })
+      }
 
       return NextResponse.json(
         { message: "Stayback request created", id: staybackRequest.id },

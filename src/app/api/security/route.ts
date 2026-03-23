@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { createNotification } from "@/lib/create-notification"
 
 // GET: Show requests at WARDEN_PENDING or COMPLETED stage for security monitoring
 export async function GET(request: NextRequest) {
@@ -95,9 +96,15 @@ export async function POST(request: NextRequest) {
 
     const staybackRequest = await prisma.staybackRequest.findUnique({
       where: { id: requestId },
+      include: {
+        student: { select: { userId: true } },
+        teamLeadApplicant: { select: { userId: true } }
+      }
     })
     if (!staybackRequest)
       return NextResponse.json({ error: "Stayback request not found" }, { status: 404 })
+
+    const applicantUserId = staybackRequest.student?.userId || staybackRequest.teamLeadApplicant?.userId
 
     // Only allow marking IN/OUT for WARDEN_PENDING or COMPLETED
     if (!["WARDEN_PENDING", "COMPLETED"].includes(staybackRequest.stage))
@@ -115,6 +122,16 @@ export async function POST(request: NextRequest) {
         securityCheckedAt: new Date(),
       },
     })
+
+    if (applicantUserId) {
+      await createNotification({
+        userId: applicantUserId,
+        title: "Security Check",
+        message: `Security has marked you as ${status}.`,
+        type: "info",
+        sourceId: requestId
+      })
+    }
 
     return NextResponse.json({
       message: `Marked as ${status} successfully`,

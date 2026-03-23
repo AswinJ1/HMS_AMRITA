@@ -37,13 +37,17 @@ const typeConfig = {
   },
 }
 
+type FilterType = "all" | "unread" | "read"
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<FilterType>("all")
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (f: FilterType) => {
     try {
-      const response = await fetch("/api/notifications")
+      setLoading(true)
+      const response = await fetch(`/api/notifications?filter=${f}`)
       if (response.ok) {
         const data = await response.json()
         setNotifications(data)
@@ -56,8 +60,8 @@ export default function NotificationsPage() {
   }, [])
 
   useEffect(() => {
-    fetchNotifications()
-  }, [fetchNotifications])
+    fetchNotifications(filter)
+  }, [fetchNotifications, filter])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -85,6 +89,12 @@ export default function NotificationsPage() {
     }
   }
 
+  const FILTER_TABS: { label: string; value: FilterType }[] = [
+    { label: "All", value: "all" },
+    { label: "Unread", value: "unread" },
+    { label: "Read", value: "read" },
+  ]
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -100,11 +110,30 @@ export default function NotificationsPage() {
         )}
       </div>
 
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-1 border rounded-lg p-1 w-fit">
+        {FILTER_TABS.map((tab) => (
+          <Button
+            key={tab.value}
+            variant={filter === tab.value ? "default" : "ghost"}
+            size="sm"
+            className="h-7 text-xs px-3"
+            onClick={() => setFilter(tab.value)}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>All Notifications</CardTitle>
+          <CardTitle>
+            {filter === "all" ? "All Notifications" : filter === "unread" ? "Unread Notifications" : "Read Notifications"}
+          </CardTitle>
           <CardDescription>
-            You have {unreadCount} unread message{unreadCount !== 1 && "s"}
+            {filter === "all"
+              ? `You have ${unreadCount} unread message${unreadCount !== 1 ? "s" : ""}`
+              : `${notifications.length} notification${notifications.length !== 1 ? "s" : ""}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -123,10 +152,10 @@ export default function NotificationsPage() {
               <div className="flex flex-col items-center justify-center py-12 text-center border rounded-md border-dashed">
                 <Bell className="mb-4 size-10 text-muted-foreground/40" />
                 <p className="text-sm font-medium text-muted-foreground">
-                  No notifications found
+                  {filter === "unread" ? "No unread notifications" : filter === "read" ? "No read notifications" : "No notifications found"}
                 </p>
                 <p className="text-sm text-muted-foreground/60">
-                  You are all caught up on your alerts.
+                  {filter === "unread" ? "You are all caught up!" : "You are all caught up on your alerts."}
                 </p>
               </div>
             ) : (
@@ -136,13 +165,13 @@ export default function NotificationsPage() {
                 return (
                   <button
                     key={notification.id}
-                    onClick={() => markOneRead(notification.id)}
+                    onClick={() => !notification.read && markOneRead(notification.id)}
                     className={`flex items-start gap-4 p-4 rounded-lg border transition-colors hover:bg-muted/50 text-left ${
                       !notification.read ? "bg-muted/30 border-primary/20 shadow-sm" : "bg-card"
-                    }`}
+                    } ${notification.read ? "cursor-default" : "cursor-pointer"}`}
                   >
                     <div
-                      className={`mt-1 flex size-10 shrink-0 items-center justify-center `}
+                      className="mt-1 flex size-10 shrink-0 items-center justify-center"
                     >
                       <Icon className={`size-5 ${config.color}`} />
                     </div>

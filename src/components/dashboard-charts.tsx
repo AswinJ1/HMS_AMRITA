@@ -32,6 +32,29 @@ const RANGE_OPTIONS = [
   { label: "3 Months", value: 90 },
 ]
 
+// Shared tooltip helper
+function createTooltip(container: HTMLDivElement) {
+  // Remove any existing tooltip
+  d3.select(container).select(".d3-tooltip").remove()
+  
+  return d3.select(container)
+    .append("div")
+    .attr("class", "d3-tooltip")
+    .style("position", "absolute")
+    .style("pointer-events", "none")
+    .style("background", "rgba(15, 23, 42, 0.9)")
+    .style("color", "#f8fafc")
+    .style("padding", "6px 10px")
+    .style("border-radius", "6px")
+    .style("font-size", "12px")
+    .style("line-height", "1.4")
+    .style("box-shadow", "0 4px 12px rgba(0,0,0,0.15)")
+    .style("opacity", 0)
+    .style("z-index", "50")
+    .style("white-space", "nowrap")
+    .style("transition", "opacity 0.15s ease")
+}
+
 export default function DashboardCharts({ compact = false }: { compact?: boolean }) {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -68,12 +91,17 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
     
     // --- 1. Area Chart (Trend) ---
     if (trendChartRef.current && data.dailyTrend && data.dailyTrend.length > 0) {
-      const parentWidth = trendChartRef.current.clientWidth
+      const container = trendChartRef.current
+      // Make container relative for tooltip positioning
+      d3.select(container).style("position", "relative")
+      const tooltip = createTooltip(container)
+
+      const parentWidth = container.clientWidth
       const parentHeight = 280
       const width = parentWidth - margin.left - margin.right
       const height = parentHeight - margin.top - margin.bottom
 
-      const svg = d3.select(trendChartRef.current)
+      const svg = d3.select(container)
         .append("svg")
         .attr("width", parentWidth)
         .attr("height", parentHeight)
@@ -164,18 +192,34 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         .attr("stroke-width", 2.5)
         .attr("d", line)
 
+      // Interactive dots for ALL ranges
+      svg.selectAll(".dot")
+        .data(data.dailyTrend)
+        .join("circle")
+        .attr("class", "dot")
+        .attr("cx", d => x(d.date)!)
+        .attr("cy", d => y(d.count))
+        .attr("r", days <= 14 ? 4 : 3)
+        .attr("fill", "#fff")
+        .attr("stroke", "#6366f1")
+        .attr("stroke-width", 2)
+        .style("cursor", "pointer")
+        .on("mouseenter", function (event, d: any) {
+          d3.select(this).transition().duration(150).attr("r", 6)
+          const rect = container.getBoundingClientRect()
+          tooltip
+            .html(`<strong>${d.date}</strong><br/>${d.count} request${d.count !== 1 ? "s" : ""}`)
+            .style("opacity", 1)
+            .style("left", `${event.clientX - rect.left + 12}px`)
+            .style("top", `${event.clientY - rect.top - 10}px`)
+        })
+        .on("mouseleave", function () {
+          d3.select(this).transition().duration(150).attr("r", days <= 14 ? 4 : 3)
+          tooltip.style("opacity", 0)
+        })
+
       // Add Value Labels on top of the points (if days <= 14)
       if (days <= 14) {
-        svg.selectAll(".dot")
-          .data(data.dailyTrend)
-          .join("circle")
-          .attr("cx", d => x(d.date)!)
-          .attr("cy", d => y(d.count))
-          .attr("r", 4)
-          .attr("fill", "#fff")
-          .attr("stroke", "#6366f1")
-          .attr("stroke-width", 2)
-          
         svg.selectAll(".label")
           .data(data.dailyTrend)
           .join("text")
@@ -209,9 +253,34 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         .text((d: any) => `${d.name.replace("_", " ")} (${d.value})`)
     }
 
+    // Helper to add percentage labels on pie slices
+    const addPieLabels = (svg: any, renderData: any[], arc: any, total: number) => {
+      svg.selectAll(".pie-label")
+        .data(renderData)
+        .join("text")
+        .attr("class", "pie-label")
+        .attr("transform", (d: any) => `translate(${arc.centroid(d)})`)
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .attr("font-size", "10px")
+        .attr("font-weight", "600")
+        .attr("fill", "#fff")
+        .attr("pointer-events", "none")
+        .style("text-shadow", "0 1px 2px rgba(0,0,0,0.5)")
+        .text((d: any) => {
+          const pct = Math.round((d.data.value / total) * 100)
+          // Only show label if slice is big enough (> 8%)
+          return pct > 8 ? `${pct}%` : ""
+        })
+    }
+
     // --- 2. Stage Pie Chart ---
     if (stageChartRef.current && data.byStage) {
-      const svg = d3.select(stageChartRef.current)
+      const container = stageChartRef.current
+      d3.select(container).style("position", "relative")
+      const tooltip = createTooltip(container)
+
+      const svg = d3.select(container)
         .append("svg")
         .attr("width", compact ? pieSize : pieSize + 100) // extra space for legend
         .attr("height", pieSize)
@@ -226,6 +295,7 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         : pie(data.byStage)
 
       const arc = d3.arc<any>().innerRadius(0).outerRadius(pieRadius)
+      const arcHover = d3.arc<any>().innerRadius(0).outerRadius(pieRadius + 6)
 
       // Draw Pie slices
       svg.selectAll("path")
@@ -235,6 +305,34 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         .attr("fill", d => totalVal === 0 ? "#f1f5f9" : (STAGE_COLORS[d.data.name] || "#94a3b8"))
         .attr("stroke", "#ffffff")
         .style("stroke-width", "2px")
+        .style("cursor", totalVal > 0 ? "pointer" : "default")
+        .style("transition", "opacity 0.15s ease")
+        .on("mouseenter", function (event, d: any) {
+          if (totalVal === 0) return
+          d3.select(this).transition().duration(150).attr("d", arcHover)
+          const pct = Math.round((d.data.value / totalVal) * 100)
+          const rect = container.getBoundingClientRect()
+          tooltip
+            .html(`<strong>${d.data.name}</strong><br/>${d.data.value} (${pct}%)`)
+            .style("opacity", 1)
+            .style("left", `${event.clientX - rect.left + 12}px`)
+            .style("top", `${event.clientY - rect.top - 10}px`)
+        })
+        .on("mousemove", function (event) {
+          const rect = container.getBoundingClientRect()
+          tooltip
+            .style("left", `${event.clientX - rect.left + 12}px`)
+            .style("top", `${event.clientY - rect.top - 10}px`)
+        })
+        .on("mouseleave", function () {
+          d3.select(this).transition().duration(150).attr("d", arc)
+          tooltip.style("opacity", 0)
+        })
+
+      // Add percentage labels on slices
+      if (totalVal > 0) {
+        addPieLabels(svg, renderData, arc, totalVal)
+      }
 
       // Add Legend if not compact and has data
       if (totalVal > 0 && !compact) {
@@ -246,12 +344,16 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
 
     // --- 3. Club Bar Chart ---
     if (clubChartRef.current && data.byClub) {
-      const parentWidth = clubChartRef.current.clientWidth
+      const container = clubChartRef.current
+      d3.select(container).style("position", "relative")
+      const tooltip = createTooltip(container)
+
+      const parentWidth = container.clientWidth
       const parentHeight = compact ? 200 : 250
       const width = parentWidth - margin.left - margin.right
       const height = parentHeight - margin.top - margin.bottom
 
-      const svg = d3.select(clubChartRef.current)
+      const svg = d3.select(container)
         .append("svg")
         .attr("width", parentWidth)
         .attr("height", parentHeight)
@@ -293,7 +395,7 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         .call(d3.axisLeft(y).ticks(4).tickFormat(d3.format("d")).tickSize(0))
         .selectAll("text").attr("font-size", "10px").attr("fill", textColor)
 
-      // Bars
+      // Bars with hover
       svg.selectAll("rect.bar")
         .data(data.byClub)
         .join("rect")
@@ -304,6 +406,27 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         .attr("height", d => height - y(d.value))
         .attr("fill", (d, i) => CLUB_COLORS[i % CLUB_COLORS.length])
         .attr("rx", 3)
+        .style("cursor", "pointer")
+        .style("transition", "opacity 0.15s ease")
+        .on("mouseenter", function (event, d: any) {
+          d3.select(this).style("opacity", 0.8)
+          const rect = container.getBoundingClientRect()
+          tooltip
+            .html(`<strong>${d.name}</strong><br/>${d.value} request${d.value !== 1 ? "s" : ""}`)
+            .style("opacity", 1)
+            .style("left", `${event.clientX - rect.left + 12}px`)
+            .style("top", `${event.clientY - rect.top - 10}px`)
+        })
+        .on("mousemove", function (event) {
+          const rect = container.getBoundingClientRect()
+          tooltip
+            .style("left", `${event.clientX - rect.left + 12}px`)
+            .style("top", `${event.clientY - rect.top - 10}px`)
+        })
+        .on("mouseleave", function () {
+          d3.select(this).style("opacity", 1)
+          tooltip.style("opacity", 0)
+        })
         
       // Bar labels (values on top of bars)
       svg.selectAll("text.val")
@@ -318,15 +441,19 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         .text(d => d.value > 0 ? d.value : "")
     }
 
-    // --- 4. Security Donut Chart ---
+    // --- 4. Security Pie Chart ---
     if (securityChartRef.current && data.security) {
+      const container = securityChartRef.current
+      d3.select(container).style("position", "relative")
+      const tooltip = createTooltip(container)
+
       const securityArray = [
         { name: "Checked In", value: data.security?.checkedIn ?? 0, color: "#22c55e" },
         { name: "Checked Out", value: data.security?.checkedOut ?? 0, color: "#3b82f6" },
         { name: "Unchecked", value: data.security?.unchecked ?? 0, color: "#cbd5e1" },
       ]
 
-      const svg = d3.select(securityChartRef.current)
+      const svg = d3.select(container)
         .append("svg")
         .attr("width", compact ? pieSize : pieSize + 110)
         .attr("height", pieSize)
@@ -341,6 +468,7 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         : pie(securityArray)
 
       const arc = d3.arc<any>().innerRadius(0).outerRadius(pieRadius)
+      const arcHover = d3.arc<any>().innerRadius(0).outerRadius(pieRadius + 6)
 
       // Draw Pie
       svg.selectAll("path")
@@ -350,6 +478,33 @@ export default function DashboardCharts({ compact = false }: { compact?: boolean
         .attr("fill", d => d.data.color)
         .attr("stroke", "#ffffff")
         .style("stroke-width", "2px")
+        .style("cursor", totalSec > 0 ? "pointer" : "default")
+        .on("mouseenter", function (event, d: any) {
+          if (totalSec === 0) return
+          d3.select(this).transition().duration(150).attr("d", arcHover)
+          const pct = Math.round((d.data.value / totalSec) * 100)
+          const rect = container.getBoundingClientRect()
+          tooltip
+            .html(`<strong>${d.data.name}</strong><br/>${d.data.value} (${pct}%)`)
+            .style("opacity", 1)
+            .style("left", `${event.clientX - rect.left + 12}px`)
+            .style("top", `${event.clientY - rect.top - 10}px`)
+        })
+        .on("mousemove", function (event) {
+          const rect = container.getBoundingClientRect()
+          tooltip
+            .style("left", `${event.clientX - rect.left + 12}px`)
+            .style("top", `${event.clientY - rect.top - 10}px`)
+        })
+        .on("mouseleave", function () {
+          d3.select(this).transition().duration(150).attr("d", arc)
+          tooltip.style("opacity", 0)
+        })
+
+      // Add percentage labels on slices
+      if (totalSec > 0) {
+        addPieLabels(svg, renderData, arc, totalSec)
+      }
 
       // Add Legend if not compact and has data
       if (totalSec > 0 && !compact) {

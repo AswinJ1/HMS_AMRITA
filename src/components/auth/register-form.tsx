@@ -116,7 +116,7 @@ export function RegisterForm() {
   ]
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center  px-4 py-10">
       <div className="w-full max-w-3xl">
         {/* Logo & Branding */}
         <div className="mb-8 flex flex-col items-center text-center">
