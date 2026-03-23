@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -20,6 +22,12 @@ export async function GET(request: NextRequest) {
       whereClause.read = true
     }
 
+    // @ts-ignore
+    if (!prisma.notification) {
+      console.error("FATAL: prisma.notification is undefined in Next.js runtime. Needs server restart.")
+      return NextResponse.json({ error: "Database client is outdated. Please restart your Next.js server (npm run dev)." }, { status: 500 })
+    }
+
     // @ts-ignore: Prisma client type might not be updated in TS server yet
     const notifications = await prisma.notification.findMany({
       where: whereClause,
@@ -27,19 +35,19 @@ export async function GET(request: NextRequest) {
       take: 50,
     })
 
-    return NextResponse.json(
-      notifications.map((n: any) => ({
-        id: n.id,
-        title: n.title,
-        message: n.message,
-        type: n.type,
-        time: formatTimeAgo(n.createdAt),
-        read: n.read,
-      }))
-    )
-  } catch (error) {
+    const mappedNotifications = notifications.map((n: any) => ({
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      time: formatTimeAgo(n.createdAt),
+      read: n.read,
+    }))
+
+    return NextResponse.json(mappedNotifications)
+  } catch (error: any) {
     console.error("Notifications error:", error)
-    return NextResponse.json([], { status: 200 })
+    return NextResponse.json({ error: error.message || String(error) }, { status: 500 })
   }
 }
 

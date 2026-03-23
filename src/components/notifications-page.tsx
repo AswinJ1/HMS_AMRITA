@@ -42,18 +42,26 @@ type FilterType = "all" | "unread" | "read"
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterType>("all")
 
   const fetchNotifications = useCallback(async (f: FilterType) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/notifications?filter=${f}`)
+      setError(null)
+      const response = await fetch(`/api/notifications?filter=${f}`, {
+        headers: { "Cache-Control": "no-cache" },
+      })
+      
+      const data = await response.json().catch(() => null)
+      
       if (response.ok) {
-        const data = await response.json()
-        setNotifications(data)
+        setNotifications(data || [])
+      } else {
+        setError(data?.error || `Server returned ${response.status}: Failed to fetch notifications. Make sure your database is connected.`)
       }
-    } catch {
-      // Silently fail
+    } catch (err: any) {
+      setError(err.message || "Network error occurred")
     } finally {
       setLoading(false)
     }
@@ -157,6 +165,14 @@ export default function NotificationsPage() {
                 <p className="text-sm text-muted-foreground/60">
                   {filter === "unread" ? "You are all caught up!" : "You are all caught up on your alerts."}
                 </p>
+              </div>
+            ) : error ? (
+              <div className="p-4 rounded-md bg-destructive/15 text-destructive border border-destructive/20 flex items-start gap-3">
+                <AlertCircle className="size-5 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-sm">Failed to load notifications</h4>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
               </div>
             ) : (
               notifications.map((notification) => {
