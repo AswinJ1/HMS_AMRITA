@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { createNotification } from "@/lib/create-notification"
 
 const includeApprovalDetails = {
   request: {
@@ -127,11 +128,17 @@ export async function PUT(req: NextRequest) {
     // Fetch the current request with its stage
     const currentRequest = await prisma.staybackRequest.findUnique({
       where: { id: requestId },
-      include: { approvals: true },
+      include: { 
+        approvals: true,
+        student: { select: { userId: true } },
+        teamLeadApplicant: { select: { userId: true } }
+      },
     })
 
     if (!currentRequest)
       return NextResponse.json({ error: "Request not found" }, { status: 404 })
+
+    const applicantUserId = currentRequest.student?.userId || currentRequest.teamLeadApplicant?.userId
 
     // --- TEAM LEAD approval ---
     if (role === "TEAM_LEAD") {
@@ -161,12 +168,27 @@ export async function PUT(req: NextRequest) {
           where: { id: requestId },
           data: { stage: "REJECTED", status: "REJECTED" },
         })
+        if (applicantUserId) {
+          await createNotification({ userId: applicantUserId, title: "Request Rejected", message: "Your stayback request was rejected by Team Lead.", type: "rejection", sourceId: requestId })
+        }
       } else if (status === "APPROVED") {
         // Advance to STAFF_PENDING
         await prisma.staybackRequest.update({
           where: { id: requestId },
           data: { stage: "STAFF_PENDING" },
         })
+        if (applicantUserId) {
+          await createNotification({ userId: applicantUserId, title: "Request Updated", message: "Your stayback request was approved by Team Lead and awaits Staff approval.", type: "pending", sourceId: requestId })
+        }
+        
+        // Notify next approver (Staff)
+        const staffApproval = currentRequest.approvals.find(a => a.staffId)
+        if (staffApproval && staffApproval.staffId) {
+          const staffUser = await prisma.staff.findUnique({ where: { id: staffApproval.staffId }, select: { userId: true } })
+          if (staffUser) {
+            await createNotification({ userId: staffUser.userId, title: "Staff Approval Needed", message: `Stayback for ${currentRequest.clubName} awaits your approval`, type: "info", sourceId: requestId })
+          }
+        }
       }
     }
 
@@ -198,12 +220,27 @@ export async function PUT(req: NextRequest) {
           where: { id: requestId },
           data: { stage: "REJECTED", status: "REJECTED" },
         })
+        if (applicantUserId) {
+          await createNotification({ userId: applicantUserId, title: "Request Rejected", message: "Your stayback request was rejected by Staff.", type: "rejection", sourceId: requestId })
+        }
       } else if (status === "APPROVED") {
         // Advance to WARDEN_PENDING (security window opens here)
         await prisma.staybackRequest.update({
           where: { id: requestId },
           data: { stage: "WARDEN_PENDING" },
         })
+        if (applicantUserId) {
+          await createNotification({ userId: applicantUserId, title: "Request Updated", message: "Your stayback request was approved by Staff and awaits Warden approval.", type: "pending", sourceId: requestId })
+        }
+
+        // Notify next approver (Warden)
+        const hostelApproval = currentRequest.approvals.find(a => a.hostelId)
+        if (hostelApproval && hostelApproval.hostelId) {
+          const wardenUser = await prisma.hostel.findUnique({ where: { id: hostelApproval.hostelId }, select: { userId: true } })
+          if (wardenUser) {
+            await createNotification({ userId: wardenUser.userId, title: "Warden Approval Needed", message: `Stayback for ${currentRequest.clubName} awaits your approval`, type: "info", sourceId: requestId })
+          }
+        }
       }
     }
 
@@ -235,12 +272,18 @@ export async function PUT(req: NextRequest) {
           where: { id: requestId },
           data: { stage: "REJECTED", status: "REJECTED" },
         })
+        if (applicantUserId) {
+          await createNotification({ userId: applicantUserId, title: "Request Rejected", message: "Your stayback request was rejected by Warden.", type: "rejection", sourceId: requestId })
+        }
       } else if (status === "APPROVED") {
         // Warden can approve with or without security check
         await prisma.staybackRequest.update({
           where: { id: requestId },
           data: { stage: "COMPLETED", status: "APPROVED" },
         })
+        if (applicantUserId) {
+          await createNotification({ userId: applicantUserId, title: "Request Approved", message: "Your stayback request was approved by Warden and is complete.", type: "approval", sourceId: requestId })
+        }
       }
     } else {
       return NextResponse.json({ error: "Invalid role" }, { status: 403 })

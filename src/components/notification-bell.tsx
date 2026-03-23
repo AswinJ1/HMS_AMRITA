@@ -50,7 +50,8 @@ export function NotificationBell({ role }: { role: string }) {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const response = await fetch("/api/notifications")
+      // Only fetch unread notifications for the bell
+      const response = await fetch("/api/notifications?filter=unread")
       if (response.ok) {
         const data = await response.json()
         setNotifications(data)
@@ -66,12 +67,12 @@ export function NotificationBell({ role }: { role: string }) {
     return () => clearInterval(interval)
   }, [fetchNotifications])
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  const unreadCount = notifications.length // All fetched are unread
 
   const markAllRead = async () => {
     try {
       await fetch("/api/notifications/read", { method: "POST" })
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+      setNotifications([]) // Clear all since they're now read
     } catch {
       // Silently fail
     }
@@ -84,9 +85,8 @@ export function NotificationBell({ role }: { role: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       })
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-      )
+      // Remove the notification from the list since it's now read
+      setNotifications((prev) => prev.filter((n) => n.id !== id))
     } catch {
       // Silently fail
     }
@@ -147,9 +147,7 @@ export function NotificationBell({ role }: { role: string }) {
                 return (
                   <button
                     key={notification.id}
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
-                      !notification.read ? "bg-muted/30" : ""
-                    }`}
+                    className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 bg-muted/30"
                     onClick={() => markOneRead(notification.id)}
                   >
                     <div
@@ -162,9 +160,7 @@ export function NotificationBell({ role }: { role: string }) {
                         <p className="truncate text-xs font-semibold">
                           {notification.title}
                         </p>
-                        {!notification.read && (
-                          <span className="size-1.5 shrink-0 bg-primary" />
-                        )}
+                        <span className="size-1.5 shrink-0 bg-primary" />
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
                         {notification.message}

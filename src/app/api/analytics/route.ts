@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const securityStats = await prisma.staybackRequest.groupBy({
       by: ["securityStatus"],
       _count: true,
-      where: { stage: "COMPLETED" },
+      where: { stage: { in: ["WARDEN_PENDING", "COMPLETED"] } },
     })
 
     const totalCompleted = securityStats.reduce((acc, s) => acc + s._count, 0)
