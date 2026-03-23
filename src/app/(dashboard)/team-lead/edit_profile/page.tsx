@@ -169,14 +169,14 @@ export default function TeamLeadEditProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <Shield className="h-8 w-8 text-blue-600" />
             Edit Profile
           </h1>
-          <p className="text-gray-600 mt-2">Update your security profile information</p>
+          <p className="text-muted-foreground mt-2">Update your security profile information</p>
         </div>
 
         {error && (
@@ -231,17 +231,17 @@ export default function TeamLeadEditProfile() {
               <div>
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     name="email"
                     type="email"
                     value={formData.email}
                     disabled
-                    className="pl-10 bg-gray-50"
+                    className="pl-10 bg-muted"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Email cannot be changed. Contact admin if needed.
                 </p>
               </div>
@@ -253,9 +253,9 @@ export default function TeamLeadEditProfile() {
                   name="uid"
                   value={formData.uid}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-muted"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   UID cannot be changed. Contact admin if needed.
                 </p>
               </div>

@@ -76,7 +76,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stage breakdown */}
-        {logStats?.stats && (
+        {/* {logStats?.stats && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
 
         {/* Analytics Charts */}
         <DashboardCharts />

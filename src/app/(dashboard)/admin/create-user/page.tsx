@@ -3,19 +3,19 @@ import UserForm from '@/components/forms/user-form'
 
 const CreateUserPage = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white shadow">
+      <div className="bg-card shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Create New User</h1>
-              <p className="text-gray-600 mt-1">Add staff or hostel users to the system</p>
+              <h1 className="text-2xl font-bold text-foreground">Create New User</h1>
+              <p className="text-muted-foreground mt-1">Add staff or hostel users to the system</p>
             </div>
-            <nav className="text-sm text-gray-500">
-              <a href="/admin" className="hover:text-gray-700">Admin Dashboard</a>
+            <nav className="text-sm text-muted-foreground">
+              <a href="/admin" className="hover:text-foreground">Admin Dashboard</a>
               <span className="mx-2">/</span>
-              <span className="text-gray-900">Create User</span>
+              <span className="text-foreground">Create User</span>
             </nav>
           </div>
         </div>

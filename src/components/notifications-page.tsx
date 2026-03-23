@@ -142,7 +142,7 @@ export default function NotificationsPage() {
                     }`}
                   >
                     <div
-                      className={`mt-1 flex size-10 shrink-0 items-center justify-center rounded-full ${config.bg}`}
+                      className={`mt-1 flex size-10 shrink-0 items-center justify-center `}
                     >
                       <Icon className={`size-5 ${config.color}`} />
                     </div>

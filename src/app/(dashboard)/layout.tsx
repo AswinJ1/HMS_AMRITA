@@ -40,6 +40,7 @@ import {
   UserCog,
   Settings,
   KeyRound,
+  Bell,
 } from "lucide-react"
 import { NotificationBell } from "@/components/notification-bell"
 
@@ -63,27 +64,38 @@ const navItems: NavItem[] = [
   { title: "Dashboard", href: "/student", icon: <LayoutDashboard className="size-4" />, roles: ["STUDENT"] },
   { title: "Apply Stayback", href: "/student/stayback", icon: <Send className="size-4" />, roles: ["STUDENT"] },
   { title: "My Requests", href: "/student/requests", icon: <FileText className="size-4" />, roles: ["STUDENT"] },
+  { title: "Notifications",href:"/student/notification", icon: <Bell className="size-4"/>,roles: ["STUDENT"]},
+
 
   { title: "Dashboard", href: "/team-lead", icon: <LayoutDashboard className="size-4" />, roles: ["TEAM_LEAD"] },
   { title: "Approvals", href: "/team-lead/approvals", icon: <ClipboardCheck className="size-4" />, roles: ["TEAM_LEAD"] },
   { title: "Apply Stayback", href: "/team-lead/stayback", icon: <Send className="size-4" />, roles: ["TEAM_LEAD"] },
   { title: "My Requests", href: "/team-lead/requests", icon: <History className="size-4" />, roles: ["TEAM_LEAD"] },
+  { title: "Notifications",href:"/team-lead/notification", icon: <Bell className="size-4"/>,roles: ["TEAM_LEAD"]},
+
 
   { title: "Dashboard", href: "/staff", icon: <LayoutDashboard className="size-4" />, roles: ["STAFF"] },
   { title: "Approvals", href: "/staff/approvals", icon: <ClipboardCheck className="size-4" />, roles: ["STAFF"] },
   { title: "Team Leads", href: "/staff/team-leads", icon: <UserCog className="size-4" />, roles: ["STAFF"] },
+  { title: "Notifications",href:"/staff/notification", icon: <Bell className="size-4"/>,roles: ["STAFF"]},
+
 
   { title: "Dashboard", href: "/hostel", icon: <LayoutDashboard className="size-4" />, roles: ["HOSTEL"] },
   { title: "Approvals", href: "/hostel/approvals", icon: <ClipboardCheck className="size-4" />, roles: ["HOSTEL"] },
+  {title: "Notifications",href:"/hostel/notification", icon: <Bell className="size-4"/>,roles: ["HOSTEL"]},
+
 
   { title: "Dashboard", href: "/security", icon: <LayoutDashboard className="size-4" />, roles: ["SECURITY"] },
   { title: "Monitoring", href: "/security/monitoring", icon: <Shield className="size-4" />, roles: ["SECURITY"] },
   { title: "Team Details", href: "/security/team-details", icon: <Users className="size-4" />, roles: ["SECURITY"] },
+  { title: "Notifications",href:"/security/notification", icon: <Bell className="size-4"/>,roles: ["SECURITY"]},
+
 
   { title: "Dashboard", href: "/admin", icon: <LayoutDashboard className="size-4" />, roles: ["ADMIN"] },
   { title: "Users", href: "/admin/users", icon: <Users className="size-4" />, roles: ["ADMIN"] },
   { title: "Settings", href: "/admin/settings", icon: <Settings className="size-4" />, roles: ["ADMIN"] },
   { title: "Logs", href: "/admin/logs", icon: <Activity className="size-4" />, roles: ["ADMIN"] },
+  { title: "Notifications",href:"/admin/notification", icon: <Bell className="size-4"/>,roles: ["ADMIN"]},
 ]
 
 function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed: boolean; role: string; pathname: string; profileHref: string }) {
@@ -96,7 +108,7 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
         <div className="flex h-16 items-center border-b border-sidebar-border px-4">
           <Image src="/logo.png" alt="HMS Logo" width={32} height={32} className="shrink-0 rounded" />
           {!collapsed && (
-            <span className="ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground/80">
+            <span className="ml-3 text-base font-light tracking-tight text-sidebar-foreground/80">
               HMS Amrita
             </span>
           )}
@@ -106,7 +118,7 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
         <ScrollArea className="flex-1 py-3">
           <div className="px-3">
             {!collapsed && (
-              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/80 ">
+              <p className="mb-2 px-2 text-xs font-light uppercase tracking-widest text-sidebar-foreground/80 ">
                 Navigation
               </p>
             )}
@@ -116,7 +128,7 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
                 const link = (
                   <Link key={item.href} href={item.href}>
                     <div
-                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all  ${active
+                      className={`group flex items-center gap-3 px-2.5 py-2.5 text-sm font-light transition-all  ${active
                         ? " text-sidebar-foreground/80"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90"
                         } ${collapsed ? "justify-center px-2" : ""}`}
@@ -144,19 +156,19 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
           <div className="mt-4 px-3">
             <Separator className="mb-3 bg-sidebar-border" />
             {!collapsed && (
-              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/80">
+              <p className="mb-2 px-2 text-xs font-light uppercase tracking-widest text-sidebar-foreground/80">
                 Account
               </p>
             )}
             <nav className="flex flex-col gap-0.5">
               {[
-                { title: "Profile", href: profileHref, icon: <UserCircle className="size-4 text-black" /> },
+                { title: "Profile", href: profileHref, icon: <UserCircle className="size-4 text-foreground" /> },
               ].map((item) => {
                 const active = pathname === item.href
                 const link = (
                   <Link key={item.href} href={item.href}>
                     <div
-                      className={`group flex items-center gap-3 px-2.5 py-2 text-[13px] font-medium transition-all ${active ? "bg-sidebar-accent text-sidebar-foreground/80" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90"
+                      className={`group flex items-center gap-3 px-2.5 py-2.5 text-sm font-light transition-all ${active ? "bg-sidebar-accent text-sidebar-foreground/80" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90"
                         } ${collapsed ? "justify-center px-2" : ""}`}
                     >
                       <span className={active ? "text-sidebar-primary" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/60"}>{item.icon}</span>
@@ -180,7 +192,7 @@ function SidebarContent({ collapsed, role, pathname, profileHref }: { collapsed:
                 const btn = (
                   <button
                     onClick={() => signOut({ callbackUrl: "/login" })}
-                    className={`group flex w-full items-center gap-3 px-2.5 py-2 text-[13px] font-medium text-destructive/100 transition-all hover:bg-destructive/10 hover:text-destructive ${collapsed ? "justify-center px-2" : ""
+                    className={`group flex w-full items-center gap-3 px-2.5 py-2.5 text-sm font-light text-destructive/100 transition-all hover:bg-destructive/10 hover:text-destructive ${collapsed ? "justify-center px-2" : ""
                       }`}
                   >
                     <LogOut className="size-4" />
@@ -228,16 +240,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }`}
       >
         <SidebarContent collapsed={collapsed} role={role} pathname={pathname} profileHref={profileHref} />
-
-        {/* Collapse button */}
-        <div className="border-t border-sidebar-border p-2">
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="flex w-full items-center justify-center py-1.5 text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors"
-          >
-            <ChevronLeft className={`size-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} />
-          </button>
-        </div>
       </aside>
 
       {/* Main Area */}
@@ -259,7 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="hidden sm:flex items-center gap-2.5">
               <Image src="/logo.png" alt="HMS Logo" width={30} height={30} className="rounded" />
-              <h1 className="text-base font-bold tracking-tight text-foreground">
+              <h1 className="text-base  tracking-tight text-foreground">
                 Hostel Management System
               </h1>
             </div>

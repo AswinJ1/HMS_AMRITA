@@ -57,7 +57,7 @@ export default function LandingPage() {
       <section className="border-b bg-gradient-to-b from-background to-muted/30">
         <div className="mx-auto max-w-6xl px-4 py-20 lg:py-28">
           <div className="mx-auto max-w-2xl text-center">
-            <Badge variant="secondary" className="mb-4 text-[10px] font-semibold uppercase tracking-widest">
+            <Badge variant="secondary" className="mb-4 text-[10px]  tracking-widest">
               Hostel Management System
             </Badge>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">

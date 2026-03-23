@@ -152,14 +152,14 @@ export default function StudentEditProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <GraduationCap className="h-8 w-8 text-blue-600" />
             Edit Profile
           </h1>
-          <p className="text-gray-600 mt-2">Update your student profile information</p>
+          <p className="text-muted-foreground mt-2">Update your student profile information</p>
         </div>
 
         {error && (
@@ -202,17 +202,17 @@ export default function StudentEditProfile() {
               <div>
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     name="email"
                     type="email"
                     value={formData.email}
                     disabled
-                    className="pl-10 bg-gray-50"
+                    className="pl-10 bg-muted"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Email cannot be changed. Contact admin if needed.
                 </p>
               </div>
@@ -224,9 +224,9 @@ export default function StudentEditProfile() {
                   name="uid"
                   value={formData.uid}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-muted"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   UID cannot be changed. Contact admin if needed.
                 </p>
               </div>
@@ -246,7 +246,7 @@ export default function StudentEditProfile() {
                     maxLength={10}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Enter a valid 10-digit phoneNumber number
                 </p>
               </div>
@@ -270,7 +270,7 @@ export default function StudentEditProfile() {
               <div>
                 <Label htmlFor="clubName">clubName</Label>
                 <div className="relative">
-                  <Users className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="clubName"
                     name="clubName"
@@ -299,7 +299,7 @@ export default function StudentEditProfile() {
               <div>
                 <Label htmlFor="hostelName">hostelName Name</Label>
                 <div className="relative">
-                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="hostelName"
                     name="hostelName"
@@ -314,7 +314,7 @@ export default function StudentEditProfile() {
               <div>
                 <Label htmlFor="roomNo">Room Number</Label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="roomNo"
                     name="roomNo"
