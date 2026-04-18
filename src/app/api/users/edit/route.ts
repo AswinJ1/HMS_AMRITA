@@ -97,6 +97,12 @@ export async function PATCH(request: NextRequest) {
         break
       case "SECURITY":
         if (user.security) {
+          if (name && name !== user.security.name) {
+            await prisma.staybackRequest.updateMany({
+              where: { securityCheckedBy: user.security.name },
+              data: { securityCheckedBy: name }
+            })
+          }
           await prisma.security.update({
             where: { userId },
             data: {

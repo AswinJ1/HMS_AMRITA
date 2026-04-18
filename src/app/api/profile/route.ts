@@ -107,6 +107,14 @@ export async function PATCH(request: NextRequest) {
         if (!user.security) {
           return NextResponse.json({ error: "Security profile not found" }, { status: 404 })
         }
+        
+        if (name && name !== user.security.name) {
+          await prisma.staybackRequest.updateMany({
+            where: { securityCheckedBy: user.security.name },
+            data: { securityCheckedBy: name }
+          })
+        }
+
         updatedUser = await prisma.user.update({
           where: { id: session.user.id },
           data: {

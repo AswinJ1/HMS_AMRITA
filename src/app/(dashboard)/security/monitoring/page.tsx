@@ -118,9 +118,9 @@ export default function SecurityMonitoringPage() {
                                   {format(new Date(req.securityCheckedAt), "dd MMM, HH:mm")}
                                 </p>
                               )}
-                              {req.securityCheckedBy && (
+                              {/* {req.securityCheckedBy && (
                                 <p className="text-[10px] text-muted-foreground">by {req.securityCheckedBy}</p>
-                              )}
+                              )} */}
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
